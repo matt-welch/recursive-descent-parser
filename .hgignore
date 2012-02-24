@@ -1,0 +1,8 @@
+syntax: glob
+*.pdf
+samples.c
+*.o
+.project
+.cproject
+parser
+
