@@ -10,14 +10,18 @@ clean:
 tidy: clean
 	rm -f *.*~ *~
 
-BINNAME = parser
-
-DEBUG_FLAGS = -g3 -ggdb -O0 -Wall -pedantic -DDEBUG
-CONFIG		= -Wall -pedantic
+DEBUG_FLAGS = -g3 -ggdb -O0 -Wall -pedantic -DDEBUG -std=c++0x
+CONFIG		= -Wall -pedantic -std=c++0x
 
 debug: CONFIG=$(DEBUG_FLAGS)
-debug: BINNAME
+debug: parser
 
+debugger: CONFIG=$(DEBUG_FLAGS)
+debugger: parser
+	gdb ./parser
+
+test: debug
+	./parser grammar.txt
 
 #.PHONY: submit
 #submit: tidy 
