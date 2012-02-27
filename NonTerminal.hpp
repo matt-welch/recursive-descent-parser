@@ -5,8 +5,6 @@
  *      Author: mwelch
  */
 
-
-
 #ifndef __NONTERMINAL_HPP__
 #define __NONTERMINAL_HPP__
 
@@ -52,22 +50,25 @@ typedef enum e_GrammarSymbols {
 	GS_NONE, GS_LBRACEOPT, GS_RBRACEOPT, GS_LBRACKET, GS_RBRACKET, GS_DASH, GS_OR, GS_EOF
 }GramSymbolType;
 
-
+extern map <TermSymbolType, string> symbolMap; // private data member of grammar - need bidirectional lookup
 
 class NonTerminal {
 public:
 	NonTerminal();
 	NonTerminal(string name);
 	virtual ~NonTerminal();
+	void AddToFirst(TermSymbolType newFirst);
+	void AddToFollow(TermSymbolType newFollow);
+	void PrintFirstSet();
+	void PrintFollowSet();
+	map <TermSymbolType, string> symbolMap;
+
 private:
 	string 					_name;
-
 	// one rule per each optional nonterm production (separated by GS_OR)
 	vector<string> 			_rules;
 	vector<TermSymbolType> 	_firstSet;
 	vector<TermSymbolType> 	_followSet;
-
-
 	bool 		_complete;
 };
 

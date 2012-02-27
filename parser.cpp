@@ -36,6 +36,8 @@ GramSymbolType FindGrammarSymbol(string token);		// public method
 bool isValidNonTerm(string token); 					// public method
 vector<string> tokenize(const string & str, const string & delim); // public method
 void AddNonTermRule(string name); 					// public method of Grammar
+void AddTermToFirst(TermSymbolType terminal, string nonTermKey);
+void AddTermToFollow(TermSymbolType terminal, string nonTermKey);
 
 /*----------------------------------------------------------*/
 /* Global Variables associated with the next input token*/
@@ -123,6 +125,7 @@ int main ( int argc, char *argv[] )
 
 				BuildFirstSet(ruleVector);
 
+
 				cout << endl << endl << endl;
 			}
 
@@ -133,6 +136,125 @@ int main ( int argc, char *argv[] )
 	}
 	cout << endl << endl;
 	return 0;
+}
+
+
+void BuildFirstSet(vector<string> tokenList){
+	string token;
+	bool validNT;
+	GramSymbolType gramSym;
+	TermSymbolType termSym;
+	int tokenNum = 0;
+//	int tokenLength;
+//	NonTerminal rule;
+	map <string, NonTerminal>::iterator rulePtr;
+	string NTKey = "";
+
+	cout<< ":::BuildFirstSet:::" << tokenList.size() << " tokens:: " << endl;
+	// first, look for NonTerm @ vector[0]
+
+	vector<string>::iterator it_ii = tokenList.begin();
+	// this is the first token in the list, must be valid NT
+	token = *it_ii;
+	tokenNum++;
+	gramSym = FindGrammarSymbol(token);
+	termSym = FindTermType(token);
+//	tokenLength = token.length();
+	cout << "Consider token ("<< tokenNum <<"): " << token << endl;
+	if(gramSym != GS_NONE){
+		PrintError(0);
+	}else if(termSym != TS_NONE){
+		PrintError(2);
+	}else{
+		validNT = isValidNonTerm(token);
+		if(validNT){
+			AddNonTermRule(token);
+			NTKey = token;
+			rulePtr = ruleMap.find(NTKey);
+		}
+	}
+
+	// increment to point at 2nd token (should be a GS_DASH)
+	it_ii++;
+	tokenNum++;
+	token = *it_ii;
+	gramSym = FindGrammarSymbol(token);
+	termSym = FindTermType(token);
+//	tokenLength = token.length();
+	cout << "Consider token ("<< tokenNum <<"): " << token << endl;
+	if(gramSym != GS_DASH){
+		PrintError(0);
+	}
+
+	// point to next token
+	it_ii++;
+	tokenNum++;
+	while(it_ii != tokenList.end()){
+		token = *it_ii;
+		gramSym = FindGrammarSymbol(token);
+		termSym = FindTermType(token);
+//		tokenLength = token.length();
+		cout << "Consider token ("<< tokenNum <<"): " << token << endl;
+
+		if(gramSym != GS_NONE){	// reserved symbol
+			// make sure token is not a reserved symbol ( []{}- )
+			// need some logic here
+			cout << "Grammar found:\t\'" << gramSym <<"\', \'"<<  token << "\' "<< endl;
+			if(gramSym == GS_LBRACEOPT || gramSym == GS_OR){
+				// optional part, include the next token's FIRST set in this token's FIRST set
+				// include the FIRST() from the symbol inside the Lbrace, then skip past Rbrace
+				// tokenLength should never be > 1 since grammar symbols are tokenized alone
+
+			}else if (gramSym == GS_LBRACKET){
+				// repetition, important for FOLLOW, but not FIRST
+
+			}
+		}else{
+			// not a grammar symbol, look for terminal
+			;
+			if(termSym != TS_NONE){
+				// this is a terminal symbol
+				// add the terminal to the first set of NT
+				AddTermToFirst(termSym, NTKey);
+
+			}else {
+				// this is a nonterminal, make a new NT object
+
+				validNT = isValidNonTerm(token);
+				if(validNT){
+					AddNonTermRule(token);
+				}
+			}
+		}
+		// increment iterator to point to next token
+		it_ii++;
+		tokenNum++;
+	}
+	ruleMap[NTKey].PrintFirstSet();
+}
+
+void AddNonTermRule(string nonTermName){
+	cout << "NonTerminal found:\t" << nonTermName << endl;
+	if(ruleMap.find(nonTermName) == ruleMap.end()){
+		// nonterm is not yet present in the map, add it
+		ruleMap[nonTermName] = NonTerminal(nonTermName);
+	}
+}
+
+void AddTermToFirst(TermSymbolType terminal, string nonTermKey){
+	cout << "Terminal found:\t" << terminal << ", adding to First(" << nonTermKey << ")" << endl;
+	if(ruleMap.find(nonTermKey) != ruleMap.end()){
+		// nonterm is present in the map, add Term to First(nonTermKey)
+		ruleMap[nonTermKey].AddToFirst(terminal);
+	}
+}
+
+void AddTermToFollow(TermSymbolType terminal, string nonTermKey){
+	cout << "Terminal found:\t" << terminal << ", adding to Follow(" << nonTermKey << ")" << endl;
+	if(ruleMap.find(nonTermKey) != ruleMap.end()){
+		// nonterm is present in the map, add Term to First(nonTermKey)
+		ruleMap[nonTermKey].AddToFollow(terminal);
+	}
 }
 
 vector<string> tokenize(const string & str, const string & delim) {
@@ -195,97 +317,6 @@ vector<string> tokenize(const string & str, const string & delim) {
 	return tokens;
 }
 
-
-void BuildFirstSet(vector<string> tokenList){
-	string token;
-	bool validNT;
-	GramSymbolType gramSym;
-	TermSymbolType termSym;
-	int ruleNum = 0;
-	int tokenLength;
-//	NonTerminal rule;
-
-	cout<< ":::BuildFirstSet:::" << tokenList.size() << " tokens:: " << endl;
-	for(vector<string>::iterator it_ii = tokenList.begin();
-			it_ii != tokenList.end();
-			++it_ii, ++ruleNum)
-	{
-		token = *it_ii;
-		gramSym = FindGrammarSymbol(token);
-		termSym = FindTermType(token);
-		tokenLength = token.length();
-
-		cout << "Consider token ("<< ruleNum <<"): " << token << endl;
-
-		if(it_ii == tokenList.begin()){
-			// this is the first token in the list, must be valid NT
-			if(gramSym != GS_NONE){
-				PrintError(0);
-			}else if(termSym != TS_NONE){
-				PrintError(2);
-			}else{
-				validNT = isValidNonTerm(token);
-				if(validNT){
-					AddNonTermRule(token);
-				}
-			}
-			continue;
-		}
-
-//		The FIRST set of a terminal symbol is the symbol itself.
-//		The FIRST set of an empty alternative is the empty set. The empty set is indicated by e and is considered an actual element of the FIRST set (So, a FIRST set could contain two elements: '+' and e).
-//		If X has a production rule X: X1 X2 X3..., Xi, ...Xn, then initialize FIRST(X) to empty (i.e., not even holding e). Then, for each Xi (1..n):
-//		add FIRST(Xi) to FIRST(X)
-//		stop when FIRST(Xi) does not contain e
-//		If FIRST(Xn) does not contain e remove e from FIRST(X) (unless analyzing another production rule) e is already part of FIRST(X).
-
-		if(gramSym != GS_NONE){	// reserved symbol
-			// make sure token is not a reserved symbol ( []{}- )
-			// need some logic here
-			cout << "Grammar found:\t\'" << gramSym <<"\', \'"<<  token << "\' "<< endl;
-			if(gramSym == GS_LBRACEOPT || gramSym == GS_OR){
-				// optional part, include the next token's FIRST set in this token's FIRST set
-				// include the FIRST() from the symbol inside the Lbrace, then skip past Rbrace
-				// if length > 1, there's something else hiding in this token
-				if(tokenLength == 1){// the next token should be added to this FIRST()
-
-				}else if(tokenLength> 1){
-//					there's something else hiding inside the token, strip off the first char and
-				}
-			}else if (gramSym == GS_LBRACKET){
-				// repetition, important for FOLLOW, but not FIRST
-
-			}
-		}else{
-			// not a grammar symbol, look for terminal
-			;
-			if(termSym != TS_NONE){
-				// this is a terminal symbol
-				// add the terminal to the first set of NT
-				cout << "Terminal found:\t" << token << endl;
-			}else {
-				// this is a nonterminal, make a new NT object
-
-				validNT = isValidNonTerm(token);
-				if(validNT){
-					AddNonTermRule(token);
-				}
-
-			}
-
-		}
-
-	}
-}
-
-void AddNonTermRule(string name){
-	cout << "NonTerminal found:\t" << name << endl;
-	if(ruleMap.find(name) == ruleMap.end()){
-		// rule is not yet present in the map, add it
-		ruleMap[token] = NonTerminal(token);
-	}
-}
-
 TermSymbolType FindTermType(string token){
 	// token is the key value into the map
 	TermSymbolType returnSymbol;
@@ -329,7 +360,10 @@ bool isValidNonTerm(string token){
 	int numChar = 0;
 	int tokenLength = token.length();
 
+	// check to see if valid NonTerm
 	if(isdigit(c)){
+		return false;
+	}else if(ispunct(c)){
 		return false;
 	}else if(isalnum(c)){
 		// valid beginning to a NonTerm
@@ -369,7 +403,7 @@ void BuildTermTypeMap(){
 	// clear map
 	termMap.clear();
 
-	// refill the map with terminal symbol types
+	// fill the terminal map with terminal symbol types
 	termMap["VAR"] 			= TS_VAR;
 	termMap["BEGIN"] 		= TS_BEGIN;
 	termMap["END"] 			= TS_END;
@@ -408,7 +442,7 @@ void BuildTermTypeMap(){
 
 void BuildGrammarSymbolMap(){
 	// clear map
-	termMap.clear();
+	grammarSymbolMap.clear();
 
 	// fill map
 	grammarSymbolMap['-']	= GS_DASH;
