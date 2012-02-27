@@ -226,6 +226,7 @@ void BuildFirstSet(vector<string> tokenList){
 				}
 			}
 		}
+
 		// increment iterator to point to next token
 		it_ii++;
 		tokenNum++;
@@ -243,9 +244,10 @@ void AddNonTermRule(string nonTermName){
 
 void AddTermToFirst(TermSymbolType terminal, string nonTermKey){
 	cout << "Terminal found:\t" << terminal << ", adding to First(" << nonTermKey << ")" << endl;
-	if(ruleMap.find(nonTermKey) != ruleMap.end()){
+	map<string, NonTerminal>::iterator it = ruleMap.find(nonTermKey);
+	if(it != ruleMap.end()){
 		// nonterm is present in the map, add Term to First(nonTermKey)
-		ruleMap[nonTermKey].AddToFirst(terminal);
+		it->second.AddToFirst(terminal);
 	}
 }
 

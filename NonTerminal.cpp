@@ -37,6 +37,9 @@ void NonTerminal::PrintFirstSet(){
 	for(vector<TermSymbolType>::iterator it = _firstSet.begin();
 			it != _firstSet.end();
 			++it){
+		if(it != _firstSet.begin()){
+			cout << ", ";
+		}
 		switch(*it){
 		case TS_VAR:
 			tempSymbol = "VAR";
@@ -139,14 +142,13 @@ void NonTerminal::PrintFirstSet(){
 			break;
 		case TS_REALNUM:
 			tempSymbol = "REALNUM";
+			break;
 		default:
 			tempSymbol = "";
 		}
 
 		cout << tempSymbol;
-		if(it == _firstSet.begin()){
-			cout << ", ";
-		}
+
 	}
 	cout << "}" << endl;
 }
