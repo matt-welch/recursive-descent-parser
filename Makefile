@@ -1,8 +1,11 @@
-parser: parser.o
-	g++ -o parser parser.o
+parser: parser.o NonTerminal.o
+	g++ -o parser parser.o NonTerminal.o
 
-parser.o: parser.cpp
+parser.o: parser.cpp 
 	g++ -c $(CONFIG) parser.cpp
+	
+NonTerminal.o: NonTerminal.cpp NonTerminal.hpp
+	g++ -c $(CONFIG) NonTerminal.cpp
 	
 clean:
 	rm -f parser *.o core core.*
