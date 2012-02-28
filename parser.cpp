@@ -145,8 +145,8 @@ void BuildFirstSet(vector<string> tokenList){
 	GramSymbolType gramSym;
 	TermSymbolType termSym;
 	int tokenNum = 0;
-//	int tokenLength;
-//	NonTerminal rule;
+	int moreNTs = 0;
+
 	map <string, NonTerminal>::iterator rulePtr;
 	string NTKey = "";
 
@@ -159,7 +159,7 @@ void BuildFirstSet(vector<string> tokenList){
 	tokenNum++;
 	gramSym = FindGrammarSymbol(token);
 	termSym = FindTermType(token);
-//	tokenLength = token.length();
+
 	cout << "Consider token ("<< tokenNum <<"): " << token << endl;
 	if(gramSym != GS_NONE){
 		PrintError(0);
@@ -180,20 +180,22 @@ void BuildFirstSet(vector<string> tokenList){
 	token = *it_ii;
 	gramSym = FindGrammarSymbol(token);
 	termSym = FindTermType(token);
-//	tokenLength = token.length();
+
 	cout << "Consider token ("<< tokenNum <<"): " << token << endl;
 	if(gramSym != GS_DASH){
 		PrintError(0);
 	}
 
-	// point to next token
+	// point to next token (first term/nonterm in production)
 	it_ii++;
 	tokenNum++;
 	while(it_ii != tokenList.end()){
 		token = *it_ii;
+
+		// recurse here??
 		gramSym = FindGrammarSymbol(token);
 		termSym = FindTermType(token);
-//		tokenLength = token.length();
+
 		cout << "Consider token ("<< tokenNum <<"): " << token << endl;
 
 		if(gramSym != GS_NONE){	// reserved symbol
@@ -202,16 +204,22 @@ void BuildFirstSet(vector<string> tokenList){
 			cout << "Grammar found:\t\'" << gramSym <<"\', \'"<<  token << "\' "<< endl;
 			if(gramSym == GS_LBRACEOPT || gramSym == GS_OR){
 				// optional part, include the next token's FIRST set in this token's FIRST set
-				// include the FIRST() from the symbol inside the Lbrace, then skip past Rbrace
-				// tokenLength should never be > 1 since grammar symbols are tokenized alone
+				// include the FIRST() from the symbol inside the LBrace, then skip past Rbrace
+
+				// add following terminals and terminals after RBrace
+				it_ii++;
+				tokenNum++;
+				token = *it_ii;
+				gramSym = FindGrammarSymbol(token);
+				termSym = FindTermType(token);
+
 
 			}else if (gramSym == GS_LBRACKET){
-				// repetition, important for FOLLOW, but not FIRST
+				// indicates repetition, important for FOLLOW, but not FIRST
 
 			}
 		}else{
 			// not a grammar symbol, look for terminal
-			;
 			if(termSym != TS_NONE){
 				// this is a terminal symbol
 				// add the terminal to the first set of NT
@@ -223,6 +231,13 @@ void BuildFirstSet(vector<string> tokenList){
 				validNT = isValidNonTerm(token);
 				if(validNT){
 					AddNonTermRule(token);
+					if(tokenNum != 0){
+						// a nonterminal has been found in the production, come back
+						moreNTs = 1;
+					}
+				}else{
+					// malformed non-terminal
+					PrintError(0);
 				}
 			}
 		}
@@ -231,14 +246,24 @@ void BuildFirstSet(vector<string> tokenList){
 		it_ii++;
 		tokenNum++;
 	}
+	if(moreNTs){
+		ruleMap[NTKey].SetComplete(false);
+	}
 	ruleMap[NTKey].PrintFirstSet();
 }
+
+
+
 
 void AddNonTermRule(string nonTermName){
 	cout << "NonTerminal found:\t" << nonTermName << endl;
 	if(ruleMap.find(nonTermName) == ruleMap.end()){
 		// nonterm is not yet present in the map, add it
 		ruleMap[nonTermName] = NonTerminal(nonTermName);
+		if(ruleMap.size() == 1){
+			// just added 1st NT ==> start symbol
+			ruleMap[nonTermName].SetStartSymbol();
+		}
 	}
 }
 
@@ -253,9 +278,10 @@ void AddTermToFirst(TermSymbolType terminal, string nonTermKey){
 
 void AddTermToFollow(TermSymbolType terminal, string nonTermKey){
 	cout << "Terminal found:\t" << terminal << ", adding to Follow(" << nonTermKey << ")" << endl;
-	if(ruleMap.find(nonTermKey) != ruleMap.end()){
+	map<string, NonTerminal>::iterator it = ruleMap.find(nonTermKey);
+	if(it != ruleMap.end()){
 		// nonterm is present in the map, add Term to First(nonTermKey)
-		ruleMap[nonTermKey].AddToFollow(terminal);
+		it->second.AddToFollow(terminal);
 	}
 }
 
@@ -303,19 +329,6 @@ vector<string> tokenize(const string & str, const string & delim) {
 		}
 		//cout << "token: " << token << endl;
 	}
-
-#if 0
-	// old method of tokenizing.  ignores punctuation
-	size_t p0 = 0, p1 = string::npos;
-	while (p0 != string::npos) {
-		p1 = str.find_first_of(delim, p0);
-		if (p1 != p0) {
-			string token = str.substr(p0, p1 - p0);
-			tokens.push_back(token);
-		}
-		p0 = str.find_first_not_of(delim, p1);
-	}
-#endif
 	return tokens;
 }
 
@@ -375,9 +388,6 @@ bool isValidNonTerm(string token){
 			c = token[numChar];
 		}
 	}
-#ifdef NOTNECESSARY
-	cout << " numchar: " << numChar << "::: tokenLength: " << tokenLength << endl;
-#endif
 	if(numChar == tokenLength)
 		return true;
 	else

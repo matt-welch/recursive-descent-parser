@@ -30,6 +30,28 @@ void NonTerminal::AddToFollow(TermSymbolType newFollow){
 	_followSet.push_back(newFollow);
 }
 
+void NonTerminal::SetStartSymbol(){
+
+	// no start symbol has been set yet, set it to 1
+	_startSym = 1;
+}
+
+void NonTerminal::SetRuleNum(int num){
+	_ruleNum = num;
+}
+
+int NonTerminal::GetRuleNum(){
+	return _ruleNum;
+}
+
+void NonTerminal::SetComplete(bool complete){
+	_complete = complete;
+}
+
+bool NonTerminal::GetComplete(){
+	return _complete;
+}
+
 void NonTerminal::PrintFirstSet(){
 	cout << "FIRST(" << _name <<") = {";
 	string tempSymbol;
@@ -146,9 +168,7 @@ void NonTerminal::PrintFirstSet(){
 		default:
 			tempSymbol = "";
 		}
-
 		cout << tempSymbol;
-
 	}
 	cout << "}" << endl;
 }

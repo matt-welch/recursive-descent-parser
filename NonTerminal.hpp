@@ -58,18 +58,28 @@ public:
 	NonTerminal(string name);
 	virtual ~NonTerminal();
 	void AddToFirst(TermSymbolType newFirst);
+	void AddNTtoFirst(NonTerminal *newFirst);
 	void AddToFollow(TermSymbolType newFollow);
 	void PrintFirstSet();
 	void PrintFollowSet();
+	void SetStartSymbol();
+	void SetRuleNum(int num);
+	int  GetRuleNum();
+	void SetComplete(bool complete);
+	bool GetComplete();
 	map <TermSymbolType, string> symbolMap;
 
 private:
 	string 					_name;
+	int						_ruleNum;
 	// one rule per each optional nonterm production (separated by GS_OR)
 	vector<string> 			_rules;
 	vector<TermSymbolType> 	_firstSet;
 	vector<TermSymbolType> 	_followSet;
-	bool 		_complete;
+	vector<NonTerminal*>	_firstNonTerms;
+	bool 					_complete;
+	bool					_startSym;
+
 };
 
 
