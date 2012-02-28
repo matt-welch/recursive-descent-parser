@@ -62,6 +62,9 @@ void NonTerminal::PrintFirstSet(){
 		if(it != _firstSet.begin()){
 			cout << ", ";
 		}
+
+//		cout << ::TermStrings[*it] << endl<< endl;
+
 		switch(*it){
 		case TS_VAR:
 			tempSymbol = "VAR";

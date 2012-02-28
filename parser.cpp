@@ -25,32 +25,38 @@ string reserved[] = { "", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO",
 		":", ",", ";", "[", "]", "(", ")", "<>", ">", "<", "<=", ">=", "<<",
 		">>", ".", "ID", "NUM", "REALNUM", "ERROR" };
 
+//string NonTerminal::TermStrings;
+
 #endif
 
-void PrintError(int errCode); 						// public method
-void BuildTermTypeMap(); 							// private method
-void BuildGrammarSymbolMap(); 						// private method
-TermSymbolType FindTermType(string token); 			// public method
-void BuildFirstSet(vector<string> tokenList); // public method
-GramSymbolType FindGrammarSymbol(string token);		// public method
-bool isValidNonTerm(string token); 					// public method
-vector<string> tokenize(const string & str, const string & delim); // public method
-void AddNonTermRule(string name); 					// public method of Grammar
-void AddTermToFirst(TermSymbolType terminal, string nonTermKey);
-void AddTermToFollow(TermSymbolType terminal, string nonTermKey);
+// public methods for Grammar class
+void 			PrintError(int errCode);
+TermSymbolType 	FindTermType(string token);
+void 			BuildFirstSet(vector<string> tokenList);
+GramSymbolType 	FindGrammarSymbol(string token);
+bool 			isValidNonTerm(string token);
+vector<string> 	tokenize(const string & str, const string & delim);
+void 			AddNonTermRule(string name);
+void 			AddTermToFirst(TermSymbolType terminal, string nonTermKey);
+void 			AddTermToFollow(TermSymbolType terminal, string nonTermKey);
+
+// private methods for Grammar class
+void 			BuildTermTypeMap(); 							// private method
+void 			BuildGrammarSymbolMap(); 						// private method
+
 
 /*----------------------------------------------------------*/
 /* Global Variables associated with the next input token*/
 #define MAX_TOKEN_LENGTH 100
 
 char token[MAX_TOKEN_LENGTH]; /* token string*/
-int ttype; /* token type*/
+//int ttype; /* token type TODO - unused*/
 
 int tokenLength;
 
-int line_no = 1;
+//int line_no = 1;
 
-NonTerminal *rules;
+//NonTerminal *rules;
 map <string, TermSymbolType> termMap; // private data member of Grammar
 map <char, GramSymbolType> grammarSymbolMap; //private data member of Grammar
 map <string, NonTerminal> ruleMap; // private data member of Grammar
@@ -99,10 +105,10 @@ int main ( int argc, char *argv[] )
 			BuildGrammarSymbolMap();
 			BuildTermTypeMap();
 
-			map< string, vector <string> > ruleSet;
+//			map< string, vector <string> > ruleSet; // todo unused??
 			const string delim = " ";
 
-			rules = new NonTerminal[numRules];
+			//rules = new NonTerminal[numRules];// TODO: unused?
 
 			for (int i = 0; i < numRules; ++i) {
 				getline(inFilePtr, strRule);
@@ -111,8 +117,8 @@ int main ( int argc, char *argv[] )
 
 				// get vector of tokens from line
 
-				stringstream ruleStream(strRule);
-				cout << "Whole Line:: \"" << ruleStream.str() << "\"" <<endl;
+//				stringstream ruleStream(strRule); // TODO: unused?
+				cout << "Whole Line:: \"" << strRule << "\"" <<endl;
 
 				ruleVector = tokenize(strRule, delim);
 #ifdef DEBUG
@@ -129,7 +135,7 @@ int main ( int argc, char *argv[] )
 				cout << endl << endl << endl;
 			}
 
-			// close file before terminating program
+			// close file
 			inFilePtr.close();
 		}
 
@@ -206,12 +212,12 @@ void BuildFirstSet(vector<string> tokenList){
 				// optional part, include the next token's FIRST set in this token's FIRST set
 				// include the FIRST() from the symbol inside the LBrace, then skip past Rbrace
 
-				// add following terminals and terminals after RBrace
-				it_ii++;
-				tokenNum++;
-				token = *it_ii;
-				gramSym = FindGrammarSymbol(token);
-				termSym = FindTermType(token);
+//				// add following terminals and terminals after RBrace
+//				it_ii++;
+//				tokenNum++;
+//				token = *it_ii;
+//				gramSym = FindGrammarSymbol(token);
+//				termSym = FindTermType(token);
 
 
 			}else if (gramSym == GS_LBRACKET){

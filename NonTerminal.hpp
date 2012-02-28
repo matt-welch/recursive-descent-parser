@@ -52,6 +52,13 @@ typedef enum e_GrammarSymbols {
 
 extern map <TermSymbolType, string> symbolMap; // private data member of grammar - need bidirectional lookup
 
+//build TermStrings array for enum-lookup - TermStrings[TS_TYPE] = TS_string
+const string TermStrings[] = {"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT", "INT", "REAL", "STRING",
+		"PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON", "COMMA", "SEMICOLON",
+		"LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ", "GTEQ", "DOT",
+		"ID", "NUM", "REALNUM"};
+
+
 class NonTerminal {
 public:
 	NonTerminal();
@@ -68,9 +75,10 @@ public:
 	void SetComplete(bool complete);
 	bool GetComplete();
 	map <TermSymbolType, string> symbolMap;
-
+//	const static string TermStrings[];
 private:
 	string 					_name;
+
 	int						_ruleNum;
 	// one rule per each optional nonterm production (separated by GS_OR)
 	vector<string> 			_rules;
@@ -81,7 +89,6 @@ private:
 	bool					_startSym;
 
 };
-
 
 
 /* end of __NONTERMINAL_HPP__ */
