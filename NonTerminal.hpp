@@ -50,19 +50,27 @@ typedef enum e_GrammarSymbols {
 	GS_NONE, GS_LBRACEOPT, GS_RBRACEOPT, GS_LBRACKET, GS_RBRACKET, GS_DASH, GS_OR, GS_EOF
 }GramSymbolType;
 
-extern map <TermSymbolType, string> symbolMap; // private data member of grammar - need bidirectional lookup
+const string TermStrings[35] = {
+		"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT",
+		"INT",  "REAL", "STRING", "PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON",
+		"COMMA", "SEMICOLON", "LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ",
+		"GTEQ", "DOT", "ID", "NUM", "REALNUM"};
 
-//build TermStrings array for enum-lookup - TermStrings[TS_TYPE] = TS_string
-const string TermStrings[] = {"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT", "INT", "REAL", "STRING",
-		"PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON", "COMMA", "SEMICOLON",
-		"LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ", "GTEQ", "DOT",
-		"ID", "NUM", "REALNUM"};
+const TermSymbolType TermSymbols[35] = {
+		TS_NONE, TS_VAR, TS_BEGIN, TS_END, TS_ASSIGN, TS_IF, TS_WHILE, TS_DO, TS_THEN, TS_PRINT,
+		TS_INT, TS_REAL, TS_STRING, TS_PLUS, TS_MINUS, TS_UNDERSCORE, TS_DIV, TS_MULT, TS_EQUAL, TS_COLON,
+		TS_COMMA, TS_SEMICOLON,	TS_LBRAC, TS_RBRAC, TS_LPAREN, TS_RPAREN, TS_NOTEQUAL, TS_GREATER, TS_LESS,
+		TS_LTEQ, TS_GTEQ, TS_DOT, TS_ID, TS_NUM, TS_REALNUM};
 
+const GramSymbolType GrammarSymbols[8] = {
+		GS_NONE, GS_LBRACEOPT, GS_RBRACEOPT, GS_LBRACKET, GS_RBRACKET, GS_DASH, GS_OR, GS_EOF
+};
 
 class NonTerminal {
 public:
 	NonTerminal();
 	NonTerminal(string name);
+	NonTerminal(vector<string> tokenList, int ruleNum);
 	virtual ~NonTerminal();
 	void AddToFirst(TermSymbolType newFirst);
 	void AddNTtoFirst(NonTerminal *newFirst);
@@ -74,20 +82,32 @@ public:
 	int  GetRuleNum();
 	void SetComplete(bool complete);
 	bool GetComplete();
-	map <TermSymbolType, string> symbolMap;
+	void PrintError(int errCode);
+//	vector<string> tokenize(const string & str, const string & delim);
+/*
+	static 	map <string, TermSymbolType> termSymbolMap; // private data member of Grammar
+	static 	map <char, GramSymbolType> grammarSymbolMap; //private data member of Grammar
+	static string termStrings[];
+*/
+
 //	const static string TermStrings[];
 private:
-	string 					_name;
 
+	GramSymbolType 	FindGrammarType(string token);
+	TermSymbolType 	FindTermType(string token);
+	bool 			isValidNonTerm(string token);
+	void 			ParseTokenList(vector<string> tokenList);
+	void			BuildTerminalSymbolMap();
+
+	string 					_name;
 	int						_ruleNum;
-	// one rule per each optional nonterm production (separated by GS_OR)
-	vector<string> 			_rules;
+	vector<string> 			_ruleTokens;
+	vector<string>			_nonTermTokens;
+	vector<string>			_termTokens;
 	vector<TermSymbolType> 	_firstSet;
 	vector<TermSymbolType> 	_followSet;
-	vector<NonTerminal*>	_firstNonTerms;
 	bool 					_complete;
 	bool					_startSym;
-
 };
 
 

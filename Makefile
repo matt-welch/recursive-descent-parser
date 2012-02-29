@@ -1,6 +1,6 @@
 parser: parser.o NonTerminal.o
 	g++ -o parser parser.o NonTerminal.o
-
+	
 parser.o: parser.cpp 
 	g++ -c $(CONFIG) parser.cpp
 	
