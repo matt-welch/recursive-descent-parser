@@ -94,10 +94,9 @@ int main ( int argc, char *argv[] )
 	}
 
 	// create local variables
-	// stack to hold nonterminals as they're built
-	stack<NonTerminal> newNTstack;
-	// stack to hold nonterminals at they are completed
-	stack<NonTerminal> doneNTstack;
+	// queue to hold nonterminals as they're built
+	queue<NonTerminal> newNTqueue;
+	queue<NonTerminal> firstsDone;
 
 	// initialize the static members of NonTerminal
 
@@ -139,10 +138,10 @@ int main ( int argc, char *argv[] )
 			}
 
 			g_ruleMap[nextNT->GetName()] = *nextNT;
-			newNTstack.push(*nextNT);
+			newNTqueue.push(*nextNT);
 			cout << endl << endl;
 
-			cout << "stack contains " << newNTstack.size() << " items." << endl << endl;
+			cout << "stack contains " << newNTqueue.size() << " items." << endl << endl;
 			++numRules;
 		}
 	}
@@ -151,16 +150,43 @@ int main ( int argc, char *argv[] )
 
 	cout << numRules << " rules found." << endl<< endl;
 
-	// parse bck through rules from last to first, defining first/follow as you go
-	while(!newNTstack.empty()){
-		NonTerminal tempNT = newNTstack.top();
-		newNTstack.pop();
+	// parse back through rules from first to last, unioning first sets of NTs
+	while(!newNTqueue.empty()){
+		NonTerminal tempNT = newNTqueue.front();
+		newNTqueue.pop();
+		cout << tempNT.GetName() << endl;
 
-		// analyze for First/Follow
+		vector<string> nonTermsInFirst = tempNT.GetFirstNTs();
 
-		doneNTstack.push(tempNT);
+//		look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
+		for(vector<string>::iterator it = nonTermsInFirst.begin();
+			it != nonTermsInFirst.end();
+			++it){
+			// *it is a string token from the list of NonTerminals in the FIRST()
+			map <string, NonTerminal>::iterator it_nt= g_ruleMap.find(*it);
+			if(it_nt == g_ruleMap.end()){
+				// the nonTerminal in question was unfound==>error1
+				PrintError(1);
+			}else{
+				// found a matching rule, add its FIRST() to this NT's FIRST()
+				tempNT.UnionFirstSets(it_nt->second);
+			}
+		}
 
+		// store the Re-Processed NonTerminals
+		g_ruleMap[tempNT.GetName()] = tempNT;
+		firstsDone.push(tempNT);
 	}
+
+	while(!firstsDone.empty()){
+		NonTerminal tempNT = firstsDone.front();
+		firstsDone.pop();
+		tempNT.PrintFirstSet();
+	}
+
+	// parse for follow sets
+
+
 	return(0);
 }
 

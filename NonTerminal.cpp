@@ -92,8 +92,14 @@ void NonTerminal::ParseTokenList(){
 		termSym = FindTermType(token);
 
 		// analyze tokens
+		// this logic is ugly because it's approximating a functional paradigm
 		if(gramSym == GS_LBRACKET){
-			newRule = true;
+			if(firstCount == 0){
+				newRule = true;
+			}else{
+				newRule = false;
+				complete = true;
+			}
 			bracketOpen = true;
 		}else if(gramSym == GS_OR){
 			if(firstCount == 0) PrintError(0);
@@ -113,7 +119,6 @@ void NonTerminal::ParseTokenList(){
 			continue;
 			}
 		}
-		// end of repetition
 
 		if(newRule == true){
 			if(termSym != TS_NONE){
@@ -134,15 +139,21 @@ void NonTerminal::ParseTokenList(){
 		it_ii++;
 		tokenNum++;
 	}
-	// set _complete flag
-	//	_complete = (_nonTermTokens.size() > 0);
-
+	// TODO: these calls should be inside main() at the end, when it's done
 		PrintFirstSet();
 		PrintFirstNTs();
 }
 
 NonTerminal::~NonTerminal() {
 	// TODO Auto-generated destructor stub
+}
+
+void NonTerminal::UnionFirstSets( NonTerminal  other){
+	for(vector<TermSymbolType>::iterator it = other._firstSet.begin();
+		it != 	other._firstSet.end();
+		++it){
+		this->AddToFirst(*it);
+	}
 }
 
 void NonTerminal::AddToFirst(TermSymbolType newFirst){
@@ -180,6 +191,9 @@ int NonTerminal::GetRuleNum(){
 	return _ruleNum;
 }
 
+vector<string> NonTerminal::GetFirstNTs(){
+	return _nonTermTokens;
+}
 void NonTerminal::SetComplete(bool complete){
 	_complete = complete;
 }

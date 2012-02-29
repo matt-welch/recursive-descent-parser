@@ -33,6 +33,7 @@ using std::stringstream;
 #include <istream>
 #include <map>
 #include <stack>
+#include <queue>
 using namespace std;
 
 
@@ -84,10 +85,12 @@ public:
 	void SetComplete(bool complete);
 	bool GetComplete();
 	string GetName();
+	vector<string> GetFirstNTs();
 	void PrintError(int errCode);
+	void UnionFirstSets(NonTerminal other);
 //	vector<string> tokenize(const string & str, const string & delim);
 /*
-	static 	map <string, TermSymbolType> termSymbolMap; // private data member of Grammar
+	static 	map <string, TermSymbolType> t*ermSymbolMap; // private data member of Grammar
 	static 	map <char, GramSymbolType> grammarSymbolMap; //private data member of Grammar
 	static string termStrings[];
 */
