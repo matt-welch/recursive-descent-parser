@@ -44,24 +44,24 @@ typedef enum e_TermSymbols {
 	TS_VAR, TS_BEGIN, TS_END, TS_ASSIGN, TS_IF, TS_WHILE, TS_DO, TS_THEN, TS_PRINT, TS_INT, TS_REAL, TS_STRING,
 	TS_PLUS, TS_MINUS, TS_UNDERSCORE, TS_DIV, TS_MULT, TS_EQUAL, TS_COLON, TS_COMMA, TS_SEMICOLON,
 	TS_LBRAC, TS_RBRAC, TS_LPAREN, TS_RPAREN, TS_NOTEQUAL, TS_GREATER, TS_LESS, TS_LTEQ, TS_GTEQ, TS_DOT,
-	TS_ID, TS_NUM, TS_REALNUM
+	TS_ID, TS_NUM, TS_REALNUM, TS_EOF
 }TermSymbolType;
 
 typedef enum e_GrammarSymbols {
 	GS_NONE, GS_LBRACKET, GS_RBRACKET, GS_LBRACE, GS_RBRACE, GS_DASH, GS_OR, GS_EOF
 }GramSymbolType;
 
-const string TermStrings[35] = {
+const string TermStrings[36] = {
 		"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT",
 		"INT",  "REAL", "STRING", "PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON",
 		"COMMA", "SEMICOLON", "LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ",
-		"GTEQ", "DOT", "ID", "NUM", "REALNUM"};
+		"GTEQ", "DOT", "ID", "NUM", "REALNUM", "$"};
 
-const TermSymbolType TermSymbols[35] = {
+const TermSymbolType TermSymbols[36] = {
 		TS_NONE, TS_VAR, TS_BEGIN, TS_END, TS_ASSIGN, TS_IF, TS_WHILE, TS_DO, TS_THEN, TS_PRINT,
 		TS_INT, TS_REAL, TS_STRING, TS_PLUS, TS_MINUS, TS_UNDERSCORE, TS_DIV, TS_MULT, TS_EQUAL, TS_COLON,
 		TS_COMMA, TS_SEMICOLON,	TS_LBRAC, TS_RBRAC, TS_LPAREN, TS_RPAREN, TS_NOTEQUAL, TS_GREATER, TS_LESS,
-		TS_LTEQ, TS_GTEQ, TS_DOT, TS_ID, TS_NUM, TS_REALNUM};
+		TS_LTEQ, TS_GTEQ, TS_DOT, TS_ID, TS_NUM, TS_REALNUM, TS_EOF};
 
 const GramSymbolType GrammarSymbols[8] = {
 		GS_NONE, GS_LBRACKET, GS_RBRACKET, GS_LBRACE, GS_RBRACE, GS_DASH, GS_OR, GS_EOF
@@ -80,6 +80,7 @@ public:
 	void PrintFirstNTs();
 	void PrintFollowSet();
 	void SetStartSymbol();
+	bool IsStartSymbol();
 	void SetRuleNum(int num);
 	int  GetRuleNum();
 	void SetComplete(bool complete);
@@ -87,7 +88,7 @@ public:
 	string GetName();
 	vector<string> GetFirstNTs();
 	void PrintError(int errCode);
-	void UnionFirstSets(NonTerminal other);
+	bool UnionFirstSets(NonTerminal other);
 //	vector<string> tokenize(const string & str, const string & delim);
 /*
 	static 	map <string, TermSymbolType> t*ermSymbolMap; // private data member of Grammar
@@ -102,16 +103,17 @@ private:
 	TermSymbolType 	FindTermType(string token);
 	bool 			isValidNonTerm(string token);
 	void 			ParseTokenList();
-	void			BuildTerminalSymbolMap();
 
 	string 					_name;
 	int						_ruleNum;
 	vector<string> 			_ruleTokens;
+	vector< vector<string> > _ruleList;
 	vector<string>			_nonTermTokens;
 	vector<string>			_termTokens;
 	vector<TermSymbolType> 	_firstSet;
 	vector<TermSymbolType> 	_followSet;
 	bool 					_complete;
+	bool					_modified;
 	bool					_startSym;
 };
 

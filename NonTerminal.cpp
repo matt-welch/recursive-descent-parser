@@ -38,7 +38,7 @@ void NonTerminal::ParseTokenList(){
 #ifdef DEBUG
 	cout<< ":::ParseTokenList:::" << _ruleTokens.size() << " tokens:: " << endl;
 #endif
-	// first, look for NonTerm @ vector[0]
+	// follow, look for NonTerm @ vector[0]
 
 	vector<string>::iterator it_ii = _ruleTokens.begin();
 	// this is the first token in the list, must be valid NT
@@ -140,20 +140,24 @@ void NonTerminal::ParseTokenList(){
 		tokenNum++;
 	}
 	// TODO: these calls should be inside main() at the end, when it's done
-		PrintFirstSet();
-		PrintFirstNTs();
+#ifdef DEBUG
+	PrintFirstSet();
+	PrintFirstNTs();
+#endif
 }
 
 NonTerminal::~NonTerminal() {
 	// TODO Auto-generated destructor stub
 }
 
-void NonTerminal::UnionFirstSets( NonTerminal  other){
+bool NonTerminal::UnionFirstSets( NonTerminal  other){
+	_modified = false;
 	for(vector<TermSymbolType>::iterator it = other._firstSet.begin();
 		it != 	other._firstSet.end();
 		++it){
 		this->AddToFirst(*it);
 	}
+	return _modified;
 }
 
 void NonTerminal::AddToFirst(TermSymbolType newFirst){
@@ -164,6 +168,7 @@ void NonTerminal::AddToFirst(TermSymbolType newFirst){
 		if(*it == newFirst) return;
 	}
 	// add to first set if not present
+	_modified = true;
 	_firstSet.push_back(newFirst);
 }
 
@@ -181,6 +186,10 @@ void NonTerminal::AddToFollow(TermSymbolType newFollow){
 void NonTerminal::SetStartSymbol(){
 	// no start symbol has been set yet, set it to 1
 	_startSym = true;
+}
+
+bool NonTerminal::IsStartSymbol(){
+	return _startSym;
 }
 
 void NonTerminal::SetRuleNum(int num){
@@ -320,19 +329,20 @@ void NonTerminal::PrintFirstNTs(){
 }
 
 void NonTerminal::PrintFollowSet(){
+		cout << "FOLLOW(" << _name <<") = {";
+		string tempSymbol;
 
+		for(vector<TermSymbolType>::iterator it = _followSet.begin();
+				it != _followSet.end();
+				++it){
+			if(it != _followSet.begin()){
+				cout << ", ";
+			}
+			// use ENUM as index to strings vector
+			tempSymbol = TermStrings[*it];
+
+			cout << tempSymbol;
+		}
+		cout << "}" << endl;
 }
 
-void NonTerminal::BuildTerminalSymbolMap(){
-	/*string TermStrings[35] = {
-				"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT",
-				"INT",  "REAL", "STRING", "PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON",
-				"COMMA", "SEMICOLON", "LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ",
-				"GTEQ", "DOT", "ID", "NUM", "REALNUM"};
-
-	TermSymbolType TermSymbols[35] = {
-				TS_NONE, TS_VAR, TS_BEGIN, TS_END, TS_ASSIGN, TS_IF, TS_WHILE, TS_DO, TS_THEN, TS_PRINT,
-				TS_INT, TS_REAL, TS_STRING, TS_PLUS, TS_MINUS, TS_UNDERSCORE, TS_DIV, TS_MULT, TS_EQUAL, TS_COLON,
-				TS_COMMA, TS_SEMICOLON,	TS_LBRAC, TS_RBRAC, TS_LPAREN, TS_RPAREN, TS_NOTEQUAL, TS_GREATER, TS_LESS,
-				TS_LTEQ, TS_GTEQ, TS_DOT, TS_ID, TS_NUM, TS_REALNUM};*/
-}

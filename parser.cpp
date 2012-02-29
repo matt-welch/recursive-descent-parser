@@ -14,10 +14,6 @@
 
 #include "NonTerminal.hpp"
 
-#ifndef DEBUG
-#define DEBUG
-#endif
-
 #if 1
 /*------------------- reserved words and token strings -----------------------*/
 string reserved[] = { "", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO",
@@ -93,36 +89,28 @@ int main ( int argc, char *argv[] )
 		exit(1);
 	}
 
+	cout << endl << ":::Grammar First & Follow Sets:::" << endl;
+
 	// create local variables
 	// queue to hold nonterminals as they're built
-	queue<NonTerminal> newNTqueue;
-	queue<NonTerminal> firstsDone;
-
-	// initialize the static members of NonTerminal
-
-
-/*	// build maps for symbol lookup - could be more efficient
-	g_BuildGrammarSymbolMap();
-	g_BuildTermTypeMap();*/
-
-	cout << endl << endl
-			<< ":::Welcome to the recursive descent parser:::" << endl
-			<< endl;
-
+	vector<NonTerminal> newNTvector;
 	string strRule;
 	string name;
 	int numRules = 0;
 	vector<string> tokenVector;
 	const string delim = " ";
 	int numTokens = 0;
+	NonTerminal *nextNT;
 
 	while (inFilePtr.good()) {
 		getline(inFilePtr, strRule);
-		if (inFilePtr.good()) { //TODO: why check inFIlePtr.good() twice??
+		if (inFilePtr.good()) { //TODO: why check inFilePtr.good() twice??
+#ifdef DEBUG
 			cout << "Line("<< numRules <<"):: \"" << strRule << "\"" <<endl;
-
+#endif
 			tokenVector = tokenize(strRule, delim);
 			numTokens = tokenVector.size();
+
 #ifdef DEBUG
 			cout << "NumTokensFound: " << numTokens << endl;
 #endif
@@ -132,61 +120,103 @@ int main ( int argc, char *argv[] )
 			}
 
 			// build a NonTerminal which may be pushed to the stack
-			NonTerminal *nextNT = new NonTerminal(tokenVector,numRules);
+			map<string, NonTerminal>::iterator it = g_ruleMap.find(tokenVector[0]);
+			if(it == g_ruleMap.end()){// if no rule exists yet, make one
+				nextNT = new NonTerminal(tokenVector,numRules);
+			}else{// grab the existing rule from the map
+				nextNT = &it->second;
+			}
 			if(numRules == 0){
 				nextNT->SetStartSymbol();
 			}
 
 			g_ruleMap[nextNT->GetName()] = *nextNT;
-			newNTqueue.push(*nextNT);
-			cout << endl << endl;
-
-			cout << "stack contains " << newNTqueue.size() << " items." << endl << endl;
+			newNTvector.push_back(*nextNT);
+#ifdef DEBUG
+			cout << "stack contains " << newNTvector.size() << " items." << endl << endl;
+#endif
 			++numRules;
 		}
 	}
 	// close file before terminating program
 	inFilePtr.close();
 
+#ifdef DEBUG
 	cout << numRules << " rules found." << endl<< endl;
+#endif
 
 	// parse back through rules from first to last, unioning first sets of NTs
-	while(!newNTqueue.empty()){
-		NonTerminal tempNT = newNTqueue.front();
-		newNTqueue.pop();
-		cout << tempNT.GetName() << endl;
+	// UNTIL no changes are made
+	// use a vector and cycle through continuously until modified is false
+	queue<NonTerminal> firstsDone;
+	int modCount = 0;
+	do{
+		modCount = 0;
+		for(vector<NonTerminal>::iterator thisNT = newNTvector.begin();
+				thisNT != newNTvector.end();
+				++thisNT)
+		{
+			vector<string> nonTermsInFirst = thisNT->GetFirstNTs();
 
-		vector<string> nonTermsInFirst = tempNT.GetFirstNTs();
+#ifdef DEBUG
+			cout << "reprocessing NT(" << thisNT->GetName() << "): mod:" << modCount << endl;
+#endif
 
-//		look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
-		for(vector<string>::iterator it = nonTermsInFirst.begin();
-			it != nonTermsInFirst.end();
-			++it){
-			// *it is a string token from the list of NonTerminals in the FIRST()
-			map <string, NonTerminal>::iterator it_nt= g_ruleMap.find(*it);
-			if(it_nt == g_ruleMap.end()){
-				// the nonTerminal in question was unfound==>error1
-				PrintError(1);
-			}else{
-				// found a matching rule, add its FIRST() to this NT's FIRST()
-				tempNT.UnionFirstSets(it_nt->second);
+			// look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
+			for(vector<string>::iterator it = nonTermsInFirst.begin();
+					it != nonTermsInFirst.end();
+					++it){
+				// *it is a string token from the list of NonTerminals in the FIRST()
+				map <string, NonTerminal>::iterator it_nt= g_ruleMap.find(*it);
+				if(it_nt == g_ruleMap.end()){
+					// the nonTerminal in question was unfound==>error1
+					PrintError(1);
+				}else{
+					// found a matching rule, add its FIRST() to this NT's FIRST()
+					modCount += thisNT->UnionFirstSets(it_nt->second);
+				}
+			}
+			if(modCount > 0){
+				g_ruleMap[thisNT->GetName()] = *thisNT;
 			}
 		}
+	}while(modCount > 0);
 
-		// store the Re-Processed NonTerminals
-		g_ruleMap[tempNT.GetName()] = tempNT;
-		firstsDone.push(tempNT);
-	}
-
-	while(!firstsDone.empty()){
-		NonTerminal tempNT = firstsDone.front();
-		firstsDone.pop();
-		tempNT.PrintFirstSet();
-	}
-
+	queue<NonTerminal> followsDone;
 	// parse for follow sets
+	for(vector<NonTerminal>::iterator thisNT = newNTvector.begin();
+			thisNT != newNTvector.end();
+					++thisNT)
+	{
+		thisNT->GetFirstNTs();
 
 
+		if(thisNT->IsStartSymbol()){
+			thisNT->AddToFollow(TS_EOF);
+		}
+
+
+		followsDone.push(*thisNT);
+	}
+
+	// print FIRST sets
+	queue<NonTerminal> firstsPrinted;
+	while(!followsDone.empty()){
+		NonTerminal tempNT = followsDone.front();
+		followsDone.pop();
+		tempNT.PrintFirstSet();
+		firstsPrinted.push(tempNT);
+	}
+
+	// print FOLLOW sets
+	while(!firstsPrinted.empty()){
+		NonTerminal tempNT = firstsPrinted.front();
+		firstsPrinted.pop();
+		tempNT.PrintFollowSet();
+	}
+
+	// DONE!
+	cout << endl;
 	return(0);
 }
 
@@ -232,11 +262,9 @@ vector<string> tokenize(const string & str, const string & delim) {
 			}while(isalnum(c));
 			tokens.push_back(string(token));
 		}
-		//cout << "token: " << token << endl;
 	}
 	return tokens;
 }
-
 
 void PrintError(int errCode){
 	string message;
@@ -254,265 +282,6 @@ void PrintError(int errCode){
 		message = "unknown error, kinda like a BSOD";
 		break;
 	}
-	cout << endl << endl << "ERROR CODE " << errCode << " :: " << message << endl;
+	cout << endl << endl << "ERROR CODE " << errCode << " :: " << message << endl << endl;
 	exit(1);
 }
-
-#ifdef DONTUSECLASSES
-void BuildFirstSet(vector<string> tokenList){
-	string token;
-	bool validNT;
-	GramSymbolType gramSym;
-	TermSymbolType termSym;
-	int tokenNum = 0;
-	int moreNTs = 0;
-
-	map <string, NonTerminal>::iterator rulePtr;
-	string NTKey = "";
-
-	cout<< ":::BuildFirstSet:::" << tokenList.size() << " tokens:: " << endl;
-	// first, look for NonTerm @ vector[0]
-
-	vector<string>::iterator it_ii = tokenList.begin();
-	// this is the first token in the list, must be valid NT
-	token = *it_ii;
-	tokenNum++;
-	gramSym = FindGrammarSymbol(token);
-	termSym = FindTermType(token);
-
-	cout << "Consider token ("<< tokenNum <<"): " << token << endl;
-	if(gramSym != GS_NONE){
-		PrintError(0);
-	}else if(termSym != TS_NONE){
-		PrintError(2);
-	}else{
-		validNT = isValidNonTerm(token);
-		if(validNT){
-			AddNonTermRule(token);
-			NTKey = token;
-			rulePtr = g_ruleMap.find(NTKey);
-		}
-	}
-
-	// increment to point at 2nd token (should be a GS_DASH)
-	it_ii++;
-	tokenNum++;
-	token = *it_ii;
-	gramSym = FindGrammarSymbol(token);
-	termSym = FindTermType(token);
-
-	cout << "Consider token ("<< tokenNum <<"): " << token << endl;
-	if(gramSym != GS_DASH){
-		PrintError(0);
-	}
-
-	// point to next token (first term/nonterm in production)
-	it_ii++;
-	tokenNum++;
-	while(it_ii != tokenList.end()){
-		token = *it_ii;
-
-		// recurse here??
-		gramSym = FindGrammarSymbol(token);
-		termSym = FindTermType(token);
-
-		cout << "Consider token ("<< tokenNum <<"): " << token << endl;
-
-		if(gramSym != GS_NONE){	// reserved symbol
-			// make sure token is not a reserved symbol ( []{}- )
-			// need some logic here
-			cout << "Grammar found:\t\'" << gramSym <<"\', \'"<<  token << "\' "<< endl;
-			if(gramSym == GS_LBRACKET || gramSym == GS_OR){
-				// optional part, include the next token's FIRST set in this token's FIRST set
-				// include the FIRST() from the symbol inside the LBrace, then skip past Rbrace
-
-//				// add following terminals and terminals after RBrace
-
-
-			}else if (gramSym == GS_LBRACE){
-				// indicates repetition, important for FOLLOW, but not FIRST
-
-			}
-		}else{
-			// not a grammar symbol, look for terminal
-			if(termSym != TS_NONE){
-				// this is a terminal symbol
-				// add the terminal to the first set of NT
-				AddTermToFirst(termSym, NTKey);
-
-			}else {
-				// this is a nonterminal, make a new NT object
-
-				validNT = isValidNonTerm(token);
-				if(validNT){
-					AddNonTermRule(token);
-					if(tokenNum != 0){
-						// a nonterminal has been found in the production, come back
-						moreNTs = 1;
-					}
-				}else{
-					// malformed non-terminal
-					PrintError(0);
-				}
-			}
-		}
-
-		// increment iterator to point to next token
-		it_ii++;
-		tokenNum++;
-	}
-	if(moreNTs){
-		g_ruleMap[NTKey].SetComplete(false);
-	}
-	g_ruleMap[NTKey].PrintFirstSet();
-}
-
-void AddNonTermRule(string nonTermName){
-	cout << "NonTerminal found:\t" << nonTermName << endl;
-	if(g_ruleMap.find(nonTermName) == g_ruleMap.end()){
-		// nonterm is not yet present in the map, add it
-		g_ruleMap[nonTermName] = NonTerminal(nonTermName);
-		if(g_ruleMap.size() == 1){
-			// just added 1st NT ==> start symbol
-			g_ruleMap[nonTermName].SetStartSymbol();
-		}
-	}
-}
-
-void AddTermToFirst(TermSymbolType terminal, string nonTermKey){
-	cout << "Terminal found:\t" << terminal << ", adding to First(" << nonTermKey << ")" << endl;
-	map<string, NonTerminal>::iterator it = g_ruleMap.find(nonTermKey);
-	if(it != g_ruleMap.end()){
-		// nonterm is present in the map, add Term to First(nonTermKey)
-		it->second.AddToFirst(terminal);
-	}
-}
-
-void AddTermToFollow(TermSymbolType terminal, string nonTermKey){
-	cout << "Terminal found:\t" << terminal << ", adding to Follow(" << nonTermKey << ")" << endl;
-	map<string, NonTerminal>::iterator it = g_ruleMap.find(nonTermKey);
-	if(it != g_ruleMap.end()){
-		// nonterm is present in the map, add Term to First(nonTermKey)
-		it->second.AddToFollow(terminal);
-	}
-}
-
-
-
-TermSymbolType FindTermType(string token){
-	// token is the key value into the map
-	TermSymbolType returnSymbol;
-
-	//  declare iterator to find the key
-	map<string, TermSymbolType>::iterator it;
-	it = g_termMap.find(token);
-
-	if(it == g_termMap.end()){
-		// symbol is unfound, return TS_NONE
-		returnSymbol = TS_NONE;
-	}else{
-		returnSymbol = it->second;
-	}
-
-	// return the TermSymbol from the map
-	return returnSymbol;
-}
-
-GramSymbolType FindGrammarSymbol(string token)
-{
-	GramSymbolType returnSymbol;
-
-	//  declare iterator to find the key
-	map<char,GramSymbolType>::iterator it;
-	it = g_grammarSymbolMap.find(token[0]);
-
-	if(it == g_grammarSymbolMap.end()){
-		// not a grammar symbol
-		returnSymbol = GS_NONE;
-	} else {
-		returnSymbol = it->second;
-	}
-	return returnSymbol;
-}
-
-
-bool isValidNonTerm(string token){
-
-	char c = token[0];
-	int numChar = 0;
-	int tokenLength = token.length();
-
-	// check to see if valid NonTerm
-	if(isdigit(c)){
-		return false;
-	}else if(ispunct(c)){
-		return false;
-	}else if(isalnum(c)){
-		// valid beginning to a NonTerm
-		// check remaining characters for alphanumeric
-		while(isalnum(c) && (numChar <= tokenLength)){
-			numChar++;
-			c = token[numChar];
-		}
-	}
-	if(numChar == tokenLength)
-		return true;
-	else
-		return false;
-}
-
-
-void g_BuildTermTypeMap(){
-	// clear map
-	g_termMap.clear();
-
-	// fill the terminal map with terminal symbol types
-	g_termMap["VAR"] 			= TS_VAR;
-	g_termMap["BEGIN"] 		= TS_BEGIN;
-	g_termMap["END"] 			= TS_END;
-	g_termMap["ASSIGN"] 		= TS_ASSIGN;
-	g_termMap["IF"] 			= TS_IF;
-	g_termMap["WHILE"]		= TS_WHILE;
-	g_termMap["DO"]			= TS_DO;
-	g_termMap["THEN"] 		= TS_THEN;
-	g_termMap["PRINT"] 		= TS_PRINT;
-	g_termMap["INT"] 			= TS_INT;
-	g_termMap["REAL"] 		= TS_REAL;
-	g_termMap["STRING"] 		= TS_STRING;
-	g_termMap["PLUS"] 		= TS_PLUS;
-	g_termMap["MINUS"]		= TS_MINUS;
-	g_termMap["UNDERSCORE"] 	= TS_UNDERSCORE;
-	g_termMap["DIV"] 			= TS_DIV;
-	g_termMap["MULT"] 		= TS_MULT;
-	g_termMap["EQUAL"] 		= TS_EQUAL;
-	g_termMap["COLON"] 		= TS_COLON;
-	g_termMap["COMMA"] 		= TS_COMMA;
-	g_termMap["SEMICOLON"] 	= TS_SEMICOLON;
-	g_termMap["LBRAC"] 		= TS_LBRAC;
-	g_termMap["RBRAC"] 		= TS_RBRAC;
-	g_termMap["LPAREN"] 		= TS_LPAREN;
-	g_termMap["RPAREN"] 		= TS_RPAREN;
-	g_termMap["NOTEQUAL"] 	= TS_NOTEQUAL;
-	g_termMap["GREATER"] 		= TS_GREATER;
-	g_termMap["LESS"] 		= TS_LESS;
-	g_termMap["LTEQ"] 		= TS_LTEQ;
-	g_termMap["GTEQ"] 		= TS_GTEQ;
-	g_termMap["DOT"] 			= TS_DOT;
-	g_termMap["ID"] 			= TS_ID;
-	g_termMap["NUM"] 			= TS_NUM;
-	g_termMap["REALNUM"] 		= TS_REALNUM;
-}
-
-void g_BuildGrammarSymbolMap(){
-	// clear map
-	g_grammarSymbolMap.clear();
-
-	// fill map
-	g_grammarSymbolMap['-']	= GS_DASH;
-	g_grammarSymbolMap['[']	= GS_LBRACKET;
-	g_grammarSymbolMap[']']	= GS_RBRACKET;
-	g_grammarSymbolMap['{']	= GS_LBRACE;
-	g_grammarSymbolMap['}']	= GS_RBRACE;
-	g_grammarSymbolMap['|']	= GS_OR;
-}
-#endif // DONTUSECLASSES
