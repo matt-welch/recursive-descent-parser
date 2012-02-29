@@ -61,7 +61,7 @@ int tokenLength;
 /*
 map <string, TermSymbolType> g_termMap; // private data member of Grammar
 map <char, GramSymbolType> g_grammarSymbolMap; //private data member of Grammar
-map <string, NonTerminal> g_ruleMap; // private data member of Grammar
+
 */
 
 /*
@@ -73,6 +73,7 @@ string NonTerminal::termStrings[] = {"NONE", "VAR", "BEGIN", "END", "ASSIGN", "I
 		"LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ", "GTEQ", "DOT",
 		"ID", "NUM", "REALNUM"};
 */
+map <string, NonTerminal> g_ruleMap;
 
 // beginning of recursive Descent Parser driver
 int main ( int argc, char *argv[] )
@@ -133,16 +134,11 @@ int main ( int argc, char *argv[] )
 
 			// build a NonTerminal which may be pushed to the stack
 			NonTerminal *nextNT = new NonTerminal(tokenVector,numRules);
+			if(numRules == 0){
+				nextNT->SetStartSymbol();
+			}
 
-			// this should return a NonTerminal which is then added to the stack
-			//newNTstack.push(NonTerminal(rule));
-			/* NonTerminal data values:
-			 * int ruleNum
-			 * vector<strings> tokens
-			 * vector<strings> nonterminalIDs
-			 *
-			 * */
-
+			g_ruleMap[nextNT->GetName()] = *nextNT;
 			newNTstack.push(*nextNT);
 			cout << endl << endl;
 
@@ -300,14 +296,14 @@ void BuildFirstSet(vector<string> tokenList){
 			// make sure token is not a reserved symbol ( []{}- )
 			// need some logic here
 			cout << "Grammar found:\t\'" << gramSym <<"\', \'"<<  token << "\' "<< endl;
-			if(gramSym == GS_LBRACEOPT || gramSym == GS_OR){
+			if(gramSym == GS_LBRACKET || gramSym == GS_OR){
 				// optional part, include the next token's FIRST set in this token's FIRST set
 				// include the FIRST() from the symbol inside the LBrace, then skip past Rbrace
 
 //				// add following terminals and terminals after RBrace
 
 
-			}else if (gramSym == GS_LBRACKET){
+			}else if (gramSym == GS_LBRACE){
 				// indicates repetition, important for FOLLOW, but not FIRST
 
 			}
@@ -487,10 +483,10 @@ void g_BuildGrammarSymbolMap(){
 
 	// fill map
 	g_grammarSymbolMap['-']	= GS_DASH;
-	g_grammarSymbolMap['[']	= GS_LBRACEOPT;
-	g_grammarSymbolMap[']']	= GS_RBRACEOPT;
-	g_grammarSymbolMap['{']	= GS_LBRACKET;
-	g_grammarSymbolMap['}']	= GS_RBRACKET;
+	g_grammarSymbolMap['[']	= GS_LBRACKET;
+	g_grammarSymbolMap[']']	= GS_RBRACKET;
+	g_grammarSymbolMap['{']	= GS_LBRACE;
+	g_grammarSymbolMap['}']	= GS_RBRACE;
 	g_grammarSymbolMap['|']	= GS_OR;
 }
 #endif // DONTUSECLASSES

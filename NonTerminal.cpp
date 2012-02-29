@@ -22,18 +22,18 @@ NonTerminal::NonTerminal(string name){
 NonTerminal::NonTerminal(vector<string> tokenList, int ruleNum){
 	_ruleNum = ruleNum;
 	_complete = false;
-
-	ParseTokenList(tokenList);
+	_ruleTokens = tokenList;
+	ParseTokenList();
 }
 
 
 
-void NonTerminal::ParseTokenList(vector<string> tokenList){
+void NonTerminal::ParseTokenList(){
 	string token;
 	GramSymbolType gramSym;
 	TermSymbolType termSym;
 	int tokenNum = 0;
-	_ruleTokens = tokenList;
+//	_ruleTokens = tokenList;
 
 #ifdef DEBUG
 	cout<< ":::ParseTokenList:::" << _ruleTokens.size() << " tokens:: " << endl;
@@ -82,58 +82,53 @@ void NonTerminal::ParseTokenList(vector<string> tokenList){
 	// point to next token (first term/nonterm in production)
 	it_ii++;
 	tokenNum++;
-	while(it_ii != _ruleTokens.end()){
+	bool complete = false;
+	bool newRule = true;
+	bool bracketOpen = false;
+	int firstCount = 0;
+	while(it_ii != _ruleTokens.end() && !complete){
 		token = *it_ii;
-
 		gramSym = FindGrammarType(token);
 		termSym = FindTermType(token);
 
-#ifdef DEBUG
-		cout << "Consider token ("<< tokenNum <<"): " << token << endl;
-#endif
-		if(gramSym != GS_NONE){	// reserved symbol
-			// make sure token is not a reserved symbol ( []{}- )
-			// need some logic here
-#ifdef DEBUG
-			cout << "Grammar found:\t\'" << gramSym <<"\', \'"<<  token << "\' "<< endl;
-#endif
-			if(gramSym == GS_LBRACEOPT || gramSym == GS_OR){
-				// optional part, include the next token's FIRST set in this token's FIRST set
-				// include the FIRST() from the symbol inside the LBrace, then skip past Rbrace
-
-				// add following terminals and terminals after RBrace
-/*				it_ii++;
-				token = *it_ii;
-				gramSym = FindGrammarType(token);
-				termSym = FindTermType(token);
-				_nonTermTokens.push_back(token);*/
-
-			}else if (gramSym == GS_LBRACKET){
-				// indicates repetition, important for FOLLOW, but not FIRST
-
+		// analyze tokens
+		if(gramSym == GS_LBRACKET){
+			newRule = true;
+			bracketOpen = true;
+		}else if(gramSym == GS_OR){
+			if(firstCount == 0) PrintError(0);
+			newRule = true;
+		}else if(gramSym == GS_RBRACKET){
+			// shouldn't see a '}' before anything in First()
+			if(bracketOpen != true){
+				PrintError(0);
 			}
-		}else{
-			// not a grammar symbol, look for terminal
-			if(termSym != TS_NONE){
-				// this is a terminal symbol
-				// add the terminal to the first set of NT
-				//AddTermToFirst(termSym, _name);
-				_termTokens.push_back(token);
-				AddToFirst(termSym);
-				// this is more subtle, not all terminals get added to first()
-
-			}else {
-				// this is a nonterminal, make a new NT object
-				if(isValidNonTerm(token)){
-					//AddNonTermRule(token);
-					_nonTermTokens.push_back(token);
-
-				}else{
-					// malformed non-terminal
-					PrintError(0);
-				}
+			bracketOpen = false;
+			newRule = true;
+		}else if(gramSym == GS_LBRACE){
+			if(_firstSet.size() > 0){
+			// done, no more tokens in first set
+			bracketOpen = true;
+			complete = true;
+			continue;
 			}
 		}
+		// end of repetition
+
+		if(newRule == true){
+			if(termSym != TS_NONE){
+				_termTokens.push_back(token);
+				AddToFirst(termSym);
+				firstCount++;
+				newRule = false;
+			}else if(isValidNonTerm(token)){
+				// found a NT, add to FIRST()
+				_nonTermTokens.push_back(token);
+				firstCount++;
+				newRule = false;
+			}
+		}
+
 
 		// increment iterator to point to next token
 		it_ii++;
@@ -143,6 +138,7 @@ void NonTerminal::ParseTokenList(vector<string> tokenList){
 	//	_complete = (_nonTermTokens.size() > 0);
 
 		PrintFirstSet();
+		PrintFirstNTs();
 }
 
 NonTerminal::~NonTerminal() {
@@ -150,16 +146,30 @@ NonTerminal::~NonTerminal() {
 }
 
 void NonTerminal::AddToFirst(TermSymbolType newFirst){
+	// make sure it's not already in the first set
+	for(vector<TermSymbolType>::iterator it = _firstSet.begin();
+			it != _firstSet.end();
+			++it){
+		if(*it == newFirst) return;
+	}
+	// add to first set if not present
 	_firstSet.push_back(newFirst);
 }
 
 void NonTerminal::AddToFollow(TermSymbolType newFollow){
-	_followSet.push_back(newFollow);
+	// make sure it's not already in the folow set
+		for(vector<TermSymbolType>::iterator it = _followSet.begin();
+				it != _followSet.end();
+				++it){
+			if(*it == newFollow) return;
+		}
+		// add to first set if not present
+		_followSet.push_back(newFollow);
 }
 
 void NonTerminal::SetStartSymbol(){
 	// no start symbol has been set yet, set it to 1
-	_startSym = 1;
+	_startSym = true;
 }
 
 void NonTerminal::SetRuleNum(int num){
@@ -178,6 +188,10 @@ bool NonTerminal::GetComplete(){
 	return _complete;
 }
 
+string NonTerminal::GetName(){
+	return _name;
+}
+
 GramSymbolType NonTerminal::FindGrammarType(string token)
 {
 	char c = token.c_str()[0];
@@ -185,15 +199,17 @@ GramSymbolType NonTerminal::FindGrammarType(string token)
 	case '-':
 		return GS_DASH;
 	case '[':
-		return GS_LBRACEOPT;
-	case ']':
-		return GS_RBRACEOPT;
-	case '{':
 		return GS_LBRACKET;
-	case '}':
+	case ']':
 		return GS_RBRACKET;
+	case '{':
+		return GS_LBRACE;
+	case '}':
+		return GS_RBRACE;
 	case '|':
 		return GS_OR;
+	case '$':
+		return GS_EOF;
 	default:
 		return GS_NONE;
 	}
@@ -266,122 +282,28 @@ void NonTerminal::PrintFirstSet(){
 			cout << ", ";
 		}
 
+		// use ENUM as index to strings vector
 		tempSymbol = TermStrings[*it];
 
-#if 0
-		switch(*it){
-		case TS_VAR:
-			tempSymbol = "VAR";
-			break;
-		case TS_BEGIN:
-			tempSymbol = "BEGIN";
-			break;
-		case TS_END:
-			tempSymbol = "END";
-			break;
-		case TS_ASSIGN:
-			tempSymbol = "ASSIGN";
-			break;
-		case TS_IF:
-			tempSymbol = "IF";
-			break;
-		case TS_WHILE:
-			tempSymbol = "WHILE";
-			break;
-		case TS_DO:
-			tempSymbol = "DO";
-			break;
-		case TS_THEN:
-			tempSymbol = "THEN";
-			break;
-		case TS_PRINT:
-			tempSymbol = "PRINT";
-			break;
-		case TS_INT:
-			tempSymbol = "INT";
-			break;
-		case TS_REAL:
-			tempSymbol = "REAL";
-			break;
-		case TS_STRING:
-			tempSymbol = "STRING";
-			break;
-		case TS_PLUS:
-			tempSymbol = "PLUS";
-			break;
-		case TS_MINUS:
-			tempSymbol = "MINUS";
-			break;
-		case TS_UNDERSCORE:
-			tempSymbol = "UNDERSCORE";
-			break;
-		case TS_DIV:
-			tempSymbol = "DIV";
-			break;
-		case TS_MULT:
-			tempSymbol = "MULT";
-			break;
-		case TS_EQUAL:
-			tempSymbol = "EQUAL";
-			break;
-		case TS_COLON:
-			tempSymbol = "COLON";
-			break;
-		case TS_COMMA:
-			tempSymbol = "COMMA";
-			break;
-		case TS_SEMICOLON:
-			tempSymbol = "SEMICOLON";
-			break;
-		case TS_LBRAC:
-			tempSymbol = "LBRAC";
-			break;
-		case TS_RBRAC:
-			tempSymbol = "RBRAC";
-			break;
-		case TS_LPAREN:
-			tempSymbol = "LPAREN";
-			break;
-		case TS_RPAREN:
-			tempSymbol = "RPAREN";
-			break;
-		case TS_NOTEQUAL:
-			tempSymbol = "NOTEQUAL";
-			break;
-		case TS_GREATER:
-			tempSymbol = "GREATER";
-			break;
-		case TS_LESS:
-			tempSymbol = "LESS";
-			break;
-		case TS_LTEQ:
-			tempSymbol = "LTEQ";
-			break;
-		case TS_GTEQ:
-			tempSymbol = "GTEQ";
-			break;
-		case TS_DOT:
-			tempSymbol = "DOT";
-			break;
-		case TS_ID:
-			tempSymbol = "ID";
-			break;
-		case TS_NUM:
-			tempSymbol = "NUM";
-			break;
-		case TS_REALNUM:
-			tempSymbol = "REALNUM";
-			break;
-		default:
-			tempSymbol = "";
-		}
-
-#endif
 		cout << tempSymbol;
 	}
 	cout << "}" << endl;
 }
+void NonTerminal::PrintFirstNTs(){
+	cout << "FIRSTnt(" << _name <<") = {";
+	string tempSymbol;
 
+	for(vector<string>::iterator it = _nonTermTokens.begin();
+			it != _nonTermTokens.end();
+			++it){
+		if(it != _nonTermTokens.begin()){
+			cout << ", ";
+		}
+
+		cout << *it;
+	}
+	cout << "}" << endl;
+}
 
 void NonTerminal::PrintFollowSet(){
 

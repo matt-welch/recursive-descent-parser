@@ -47,7 +47,7 @@ typedef enum e_TermSymbols {
 }TermSymbolType;
 
 typedef enum e_GrammarSymbols {
-	GS_NONE, GS_LBRACEOPT, GS_RBRACEOPT, GS_LBRACKET, GS_RBRACKET, GS_DASH, GS_OR, GS_EOF
+	GS_NONE, GS_LBRACKET, GS_RBRACKET, GS_LBRACE, GS_RBRACE, GS_DASH, GS_OR, GS_EOF
 }GramSymbolType;
 
 const string TermStrings[35] = {
@@ -63,7 +63,7 @@ const TermSymbolType TermSymbols[35] = {
 		TS_LTEQ, TS_GTEQ, TS_DOT, TS_ID, TS_NUM, TS_REALNUM};
 
 const GramSymbolType GrammarSymbols[8] = {
-		GS_NONE, GS_LBRACEOPT, GS_RBRACEOPT, GS_LBRACKET, GS_RBRACKET, GS_DASH, GS_OR, GS_EOF
+		GS_NONE, GS_LBRACKET, GS_RBRACKET, GS_LBRACE, GS_RBRACE, GS_DASH, GS_OR, GS_EOF
 };
 
 class NonTerminal {
@@ -76,12 +76,14 @@ public:
 	void AddNTtoFirst(NonTerminal *newFirst);
 	void AddToFollow(TermSymbolType newFollow);
 	void PrintFirstSet();
+	void PrintFirstNTs();
 	void PrintFollowSet();
 	void SetStartSymbol();
 	void SetRuleNum(int num);
 	int  GetRuleNum();
 	void SetComplete(bool complete);
 	bool GetComplete();
+	string GetName();
 	void PrintError(int errCode);
 //	vector<string> tokenize(const string & str, const string & delim);
 /*
@@ -96,7 +98,7 @@ private:
 	GramSymbolType 	FindGrammarType(string token);
 	TermSymbolType 	FindTermType(string token);
 	bool 			isValidNonTerm(string token);
-	void 			ParseTokenList(vector<string> tokenList);
+	void 			ParseTokenList();
 	void			BuildTerminalSymbolMap();
 
 	string 					_name;
