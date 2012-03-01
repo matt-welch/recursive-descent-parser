@@ -132,7 +132,7 @@ void NonTerminal::ParseTokenList(vector<string> tokenList){
 				newRule = false;
 			}else if(isValidNonTerm(token)){
 				// found a NT, add to FIRST()
-				_nonTermTokens.push_back(token);
+				_firstNonTerms.push_back(token);
 				firstCount++;
 				newRule = false;
 			}
@@ -162,6 +162,16 @@ bool NonTerminal::UnionFirstSets( NonTerminal  other){
 	return _modified;
 }
 
+bool NonTerminal::UnionFollowSets( NonTerminal  other){
+	_modified = false;
+	for(vector<TermSymbolType>::iterator it = other._followSet.begin();
+		it != 	other._followSet.end();
+		++it){
+		this->AddToFollow(*it);
+	}
+	return _modified;
+}
+
 void NonTerminal::AddToFirst(TermSymbolType newFirst){
 	// make sure it's not already in the first set
 	for(vector<TermSymbolType>::iterator it = _firstSet.begin();
@@ -175,7 +185,7 @@ void NonTerminal::AddToFirst(TermSymbolType newFirst){
 }
 
 void NonTerminal::AddToFollow(TermSymbolType newFollow){
-	// make sure it's not already in the folow set
+	// make sure it's not already in the follow set
 		for(vector<TermSymbolType>::iterator it = _followSet.begin();
 				it != _followSet.end();
 				++it){
@@ -184,6 +194,17 @@ void NonTerminal::AddToFollow(TermSymbolType newFollow){
 		// add to first set if not present
 		_modified = true;
 		_followSet.push_back(newFollow);
+		PrintFollowSet();
+}
+
+void NonTerminal::AddNTtoFollow(string newFollowNT){
+	for(vector<string>::iterator it = _followNonTerms.begin();
+			it != _followNonTerms.end();
+			++it){
+		if(newFollowNT.compare(*it) == 0) return;
+	}
+	_modified = true;
+	_followNonTerms.push_back(newFollowNT);
 }
 
 void NonTerminal::SetStartSymbol(){
@@ -208,7 +229,7 @@ vector< vector <string> > NonTerminal::GetRuleSet(){
 }
 
 vector<string> NonTerminal::GetFirstNTs(){
-	return _nonTermTokens;
+	return _firstNonTerms;
 }
 
 vector<string> NonTerminal::GetRule(){
@@ -323,14 +344,15 @@ void NonTerminal::PrintFirstSet(){
 	}
 	cout << "}" << endl;
 }
+
 void NonTerminal::PrintFirstNTs(){
 	cout << "FIRSTnt(" << _name <<") = {";
 	string tempSymbol;
 
-	for(vector<string>::iterator it = _nonTermTokens.begin();
-			it != _nonTermTokens.end();
+	for(vector<string>::iterator it = _firstNonTerms.begin();
+			it != _firstNonTerms.end();
 			++it){
-		if(it != _nonTermTokens.begin()){
+		if(it != _firstNonTerms.begin()){
 			cout << ", ";
 		}
 
@@ -357,3 +379,18 @@ void NonTerminal::PrintFollowSet(){
 		cout << "}" << endl;
 }
 
+void NonTerminal::PrintFollowNTs(){
+	cout << "FOLLOWnt(" << _name <<") = {";
+	string tempSymbol;
+
+	for(vector<string>::iterator it = _followNonTerms.begin();
+			it != _followNonTerms.end();
+			++it){
+		if(it != _followNonTerms.begin()){
+			cout << ", ";
+		}
+
+		cout << *it;
+	}
+	cout << "}" << endl;
+}

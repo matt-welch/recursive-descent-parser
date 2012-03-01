@@ -82,10 +82,12 @@ public:
 	void SetComplete(bool complete);
 	bool GetComplete();
 	void AddToFirst(TermSymbolType newFirst);
-	void AddNTtoFirst(NonTerminal *newFirst);
+	void AddNTtoFirst(string token);
 	void AddToFollow(TermSymbolType newFollow);
+	void AddNTtoFollow(string token);
 	void PrintFirstSet();
 	void PrintFirstNTs();
+	void PrintFollowNTs();
 	void PrintFollowSet();
 	void SetStartSymbol();
 	bool IsStartSymbol();
@@ -96,23 +98,27 @@ public:
 	void PrintError(int errCode);
 	vector< vector <string> > GetRuleSet();
 	bool UnionFirstSets(NonTerminal other);
+	bool UnionFollowSets(NonTerminal other);
 	void 			ParseTokenList(vector<string> tokenList);
 	GramSymbolType 	FindGrammarType(string token);
 	TermSymbolType 	FindTermType(string token);
 	bool 			isValidNonTerm(string token);
 
 private:
-	string 					_name;
-	int						_ruleNum;
-	vector<string> 			_ruleTokens;
-	vector< vector<string> > _ruleSet;
-	vector<string>			_nonTermTokens;
-	vector<string>			_termTokens;
-	vector<TermSymbolType> 	_firstSet;
-	vector<TermSymbolType> 	_followSet;
+	// properties of the rule:
 	bool 					_complete;
 	bool					_modified;
 	bool					_startSym;
+	string 					_name;
+	int						_ruleNum;
+	// contents of the rule productions
+	vector<string> 			_ruleTokens;
+	vector< vector<string> > _ruleSet;
+	vector<string>			_termTokens;
+	vector<TermSymbolType> 	_firstSet;
+	vector<TermSymbolType> 	_followSet;
+	vector<string>			_firstNonTerms;
+	vector<string>			_followNonTerms;
 };
 
 
