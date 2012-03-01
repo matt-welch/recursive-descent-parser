@@ -23,27 +23,25 @@ NonTerminal::NonTerminal(vector<string> tokenList, int ruleNum){
 	_ruleNum = ruleNum;
 	_complete = false;
 	_ruleTokens = tokenList;
-	ParseTokenList();
+	// add _ruleTokens to _ruleList
+	_ruleList.push_back(_ruleTokens);
+	ParseTokenList(tokenList);
 }
 
-
-
-void NonTerminal::ParseTokenList(){
+void NonTerminal::ParseTokenList(vector<string> tokenList){
 	string token;
 	GramSymbolType gramSym;
 	TermSymbolType termSym;
-	int tokenNum = 0;
-//	_ruleTokens = tokenList;
+	int tokenNum=0;
 
 #ifdef DEBUG
-	cout<< ":::ParseTokenList:::" << _ruleTokens.size() << " tokens:: " << endl;
+	cout<< ":::ParseTokenList:::" << tokenList.size() << " tokens:: " << endl;
 #endif
-	// follow, look for NonTerm @ vector[0]
+	// iterator to beginning of vector
+	vector<string>::iterator it_ii = tokenList.begin();
 
-	vector<string>::iterator it_ii = _ruleTokens.begin();
 	// this is the first token in the list, must be valid NT
 	token = *it_ii;
-	tokenNum++;
 	gramSym = FindGrammarType(token);
 	termSym = FindTermType(token);
 
@@ -56,15 +54,18 @@ void NonTerminal::ParseTokenList(){
 		PrintError(2);
 	}else{
 		if(isValidNonTerm(token)){
-			_name = token;
+			if(_name.compare(token) == 0){
+				// this is a new rule for an existing NT
+			}else{
+				_name = token;
+			}
 		}else{
 			PrintError(0);
 		}
 	}
 
 	// increment to point at 2nd token (should be a GS_DASH)
-	it_ii++;
-	tokenNum++;
+	it_ii++; tokenNum++;
 	token = *it_ii;
 	gramSym = FindGrammarType(token);
 	termSym = FindTermType(token);
@@ -80,13 +81,12 @@ void NonTerminal::ParseTokenList(){
 #endif
 
 	// point to next token (first term/nonterm in production)
-	it_ii++;
-	tokenNum++;
+	it_ii++; tokenNum++;
 	bool complete = false;
 	bool newRule = true;
 	bool bracketOpen = false;
 	int firstCount = 0;
-	while(it_ii != _ruleTokens.end() && !complete){
+	while(it_ii != tokenList.end() && !complete){
 		token = *it_ii;
 		gramSym = FindGrammarType(token);
 		termSym = FindTermType(token);
@@ -134,10 +134,8 @@ void NonTerminal::ParseTokenList(){
 			}
 		}
 
-
 		// increment iterator to point to next token
-		it_ii++;
-		tokenNum++;
+		it_ii++; tokenNum++;
 	}
 	// TODO: these calls should be inside main() at the end, when it's done
 #ifdef DEBUG

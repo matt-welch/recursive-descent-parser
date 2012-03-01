@@ -1,0 +1,3 @@
+expression - term {PLUS term}
+term - factor {MULT factor}
+factor - LPAREN expression RPAREN | NUM

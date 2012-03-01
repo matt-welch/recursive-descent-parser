@@ -13,8 +13,8 @@ clean:
 tidy: clean
 	rm -f *.*~ *~
 
-DEBUG_FLAGS = -g3 -ggdb -O0 -Wall -pedantic -DDEBUG -std=c++0x
-CONFIG		= -Wall -pedantic -std=c++0x
+DEBUG_FLAGS = -g3 -ggdb -O0 -Wall -pedantic -DDEBUG
+CONFIG		= -Wall -pedantic
 
 debug: CONFIG=$(DEBUG_FLAGS)
 debug: parser
@@ -28,7 +28,7 @@ test: debug
 
 #.PHONY: submit
 #submit: tidy 
-# 	cd ..
+# 	cd /..
 #	cp -r p2 James_Welch_Proj2
 #	zip -r James_Welch_Proj2 James_Welch_Proj2
 

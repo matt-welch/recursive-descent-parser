@@ -1,0 +1,38 @@
+
+S - B C D |   END
+B - VAR B
+C - NUM C
+C - END
+D - REALNUM | END
+B - REALNUM
+D - INT D
+
+This one is from problem 1 of the exam, with the terminals renamed.
+epsilon = END, a = VAR, b = REALNUM, d = INT, and e = NUM
+The output I got was 
+
+FIRST(S) = {END, VAR, REALNUM}
+FIRST(B) = {VAR, REALNUM}
+FIRST(C) = {NUM, END}
+FIRST(D) = {REALNUM, END, INT}
+FOLLOW(S) = {$}
+FOLLOW(B) = {NUM, END}
+FOLLOW(C) = {REALNUM, END, INT}
+FOLLOW(D) = {$}
+
+This seems to be consistent with the exam answers. 
+
+Here is another one that I adapted from the arithmetic grammar from the textbook:
+
+expression - term {PLUS term}
+term - factor {MULT factor}
+factor - LPAREN expression RPAREN | NUM
+
+My output was 
+
+FIRST(expression) = {LPAREN, NUM}
+FIRST(term) = {LPAREN, NUM}
+FIRST(factor) = {LPAREN, NUM}
+FOLLOW(expression) = {$, RPAREN}
+FOLLOW(term) = {PLUS, $, RPAREN}
+FOLLOW(factor) = {MULT, PLUS, $, RPAREN}

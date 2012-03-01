@@ -14,61 +14,14 @@
 
 #include "NonTerminal.hpp"
 
-#if 1
-/*------------------- reserved words and token strings -----------------------*/
-string reserved[] = { "", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO",
-		"THEN", "PRINT", "INT", "REAL", "STRING", "+", "-", "_", "/", "*", "=",
-		":", ",", ";", "[", "]", "(", ")", "<>", ">", "<", "<=", ">=", "<<",
-		">>", ".", "ID", "NUM", "REALNUM", "ERROR" };
-
-//string NonTerminal::TermStrings;
-
-#endif
-
 vector<string> 	tokenize(const string & str, const string & delim);
 void 			PrintError(int errCode);
-
-/*
-// public methods for Grammar class
-
-TermSymbolType 	FindTermType(string token);
-void 			BuildFirstSet(vector<string> tokenList);
-GramSymbolType 	FindGrammarSymbol(string token);
-bool 			isValidNonTerm(string token);
-
-void 			AddNonTermRule(string name);
-void 			AddTermToFirst(TermSymbolType terminal, string nonTermKey);
-void 			AddTermToFollow(TermSymbolType terminal, string nonTermKey);
-
-// private methods for Grammar class
-//void 			g_BuildTermTypeMap(); 							// private method
-//void 			g_BuildGrammarSymbolMap(); 						// private method
-*/
-
 
 /*----------------------------------------------------------*/
 /* Global Variables associated with the next input token*/
 #define MAX_TOKEN_LENGTH 100
-
 char token[MAX_TOKEN_LENGTH]; /* token string*/
-
 int tokenLength;
-
-/*
-map <string, TermSymbolType> g_termMap; // private data member of Grammar
-map <char, GramSymbolType> g_grammarSymbolMap; //private data member of Grammar
-
-*/
-
-/*
-// Define bytecount in file scope.
-map <string, TermSymbolType>  NonTerminal::termSymbolMap;
-map <char, GramSymbolType> NonTerminal::grammarSymbolMap;
-string NonTerminal::termStrings[] = {"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT", "INT", "REAL", "STRING",
-		"PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON", "COMMA", "SEMICOLON",
-		"LBRAC", "RBRAC", "LPAREN", "RPAREN", "NOTEQUAL", "GREATER", "LESS", "LTEQ", "GTEQ", "DOT",
-		"ID", "NUM", "REALNUM"};
-*/
 map <string, NonTerminal> g_ruleMap;
 
 // beginning of recursive Descent Parser driver
@@ -93,10 +46,11 @@ int main ( int argc, char *argv[] )
 
 	// create local variables
 	// queue to hold nonterminals as they're built
-	vector<NonTerminal> newNTvector;
+	map<int, NonTerminal> ruleNumberMap;
 	string strRule;
 	string name;
 	int numRules = 0;
+	int currentRuleNum = 0;
 	vector<string> tokenVector;
 	const string delim = " ";
 	int numTokens = 0;
@@ -104,7 +58,7 @@ int main ( int argc, char *argv[] )
 
 	while (inFilePtr.good()) {
 		getline(inFilePtr, strRule);
-		if (inFilePtr.good()) { //TODO: why check inFilePtr.good() twice??
+		if (inFilePtr.good()) { // check inFilePtr.good() twice to ensure no empty lines
 #ifdef DEBUG
 			cout << "Line("<< numRules <<"):: \"" << strRule << "\"" <<endl;
 #endif
@@ -118,24 +72,27 @@ int main ( int argc, char *argv[] )
 				// not enough tokens to build a rule (NonTerm,-,Term)
 				PrintError(0);
 			}
-
-			// build a NonTerminal which may be pushed to the stack
+			// assume first token is a valid NT - it will exit if not
 			map<string, NonTerminal>::iterator it = g_ruleMap.find(tokenVector[0]);
+
 			if(it == g_ruleMap.end()){// if no rule exists yet, make one
 				nextNT = new NonTerminal(tokenVector,numRules);
 			}else{// grab the existing rule from the map
 				nextNT = &it->second;
+				currentRuleNum = nextNT->GetRuleNum();
+				nextNT->ParseTokenList(tokenVector);
 			}
-			if(numRules == 0){
-				nextNT->SetStartSymbol();
-			}
+			if(numRules == 0){ nextNT->SetStartSymbol(); }
 
-			g_ruleMap[nextNT->GetName()] = *nextNT;
-			newNTvector.push_back(*nextNT);
+			string ruleName = nextNT->GetName();
+			g_ruleMap[ruleName] = *nextNT;
+			ruleNumberMap[currentRuleNum] = *nextNT;
+
 #ifdef DEBUG
-			cout << "stack contains " << newNTvector.size() << " items." << endl << endl;
+			cout << "stack contains " << ruleNumberMap.size() << " items." << endl << endl;
 #endif
 			++numRules;
+			currentRuleNum = numRules;
 		}
 	}
 	// close file before terminating program
@@ -152,14 +109,14 @@ int main ( int argc, char *argv[] )
 	int modCount = 0;
 	do{
 		modCount = 0;
-		for(vector<NonTerminal>::iterator thisNT = newNTvector.begin();
-				thisNT != newNTvector.end();
+		for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
+				thisNT != ruleNumberMap.end();
 				++thisNT)
 		{
-			vector<string> nonTermsInFirst = thisNT->GetFirstNTs();
+			vector<string> nonTermsInFirst = thisNT->second.GetFirstNTs();
 
 #ifdef DEBUG
-			cout << "reprocessing NT(" << thisNT->GetName() << "): mod:" << modCount << endl;
+			cout << "reprocessing NT(" << thisNT->second.GetName() << "): mod:" << modCount << endl;
 #endif
 
 			// look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
@@ -173,30 +130,27 @@ int main ( int argc, char *argv[] )
 					PrintError(1);
 				}else{
 					// found a matching rule, add its FIRST() to this NT's FIRST()
-					modCount += thisNT->UnionFirstSets(it_nt->second);
+					modCount += thisNT->second.UnionFirstSets(it_nt->second);
 				}
 			}
 			if(modCount > 0){
-				g_ruleMap[thisNT->GetName()] = *thisNT;
+				g_ruleMap[thisNT->second.GetName()] = thisNT->second;
 			}
 		}
 	}while(modCount > 0);
 
 	queue<NonTerminal> followsDone;
 	// parse for follow sets
-	for(vector<NonTerminal>::iterator thisNT = newNTvector.begin();
-			thisNT != newNTvector.end();
+	for(map<int, NonTerminal>::iterator thisNT = ruleNumberMap.begin();
+			thisNT != ruleNumberMap.end();
 					++thisNT)
 	{
-		thisNT->GetFirstNTs();
+		thisNT->second.GetFirstNTs();
 
-
-		if(thisNT->IsStartSymbol()){
-			thisNT->AddToFollow(TS_EOF);
+		if(thisNT->second.IsStartSymbol()){
+			thisNT->second.AddToFollow(TS_EOF);
 		}
-
-
-		followsDone.push(*thisNT);
+		followsDone.push(thisNT->second);
 	}
 
 	// print FIRST sets

@@ -1,0 +1,7 @@
+S - B C D |   END
+B - VAR B
+C - NUM C
+C - END
+D - REALNUM | END
+B - REALNUM
+D - INT D

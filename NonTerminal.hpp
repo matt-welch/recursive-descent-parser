@@ -73,6 +73,10 @@ public:
 	NonTerminal(string name);
 	NonTerminal(vector<string> tokenList, int ruleNum);
 	virtual ~NonTerminal();
+	void SetRuleNum(int num);
+	int  GetRuleNum();
+	void SetComplete(bool complete);
+	bool GetComplete();
 	void AddToFirst(TermSymbolType newFirst);
 	void AddNTtoFirst(NonTerminal *newFirst);
 	void AddToFollow(TermSymbolType newFollow);
@@ -81,28 +85,17 @@ public:
 	void PrintFollowSet();
 	void SetStartSymbol();
 	bool IsStartSymbol();
-	void SetRuleNum(int num);
-	int  GetRuleNum();
-	void SetComplete(bool complete);
-	bool GetComplete();
+	void ParseNewRule(vector<string> tokens);
 	string GetName();
 	vector<string> GetFirstNTs();
 	void PrintError(int errCode);
 	bool UnionFirstSets(NonTerminal other);
-//	vector<string> tokenize(const string & str, const string & delim);
-/*
-	static 	map <string, TermSymbolType> t*ermSymbolMap; // private data member of Grammar
-	static 	map <char, GramSymbolType> grammarSymbolMap; //private data member of Grammar
-	static string termStrings[];
-*/
+	void 			ParseTokenList(vector<string> tokenList);
 
-//	const static string TermStrings[];
 private:
-
 	GramSymbolType 	FindGrammarType(string token);
 	TermSymbolType 	FindTermType(string token);
 	bool 			isValidNonTerm(string token);
-	void 			ParseTokenList();
 
 	string 					_name;
 	int						_ruleNum;
