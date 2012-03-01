@@ -1,9 +1,13 @@
-/*
- * NonTerminal.cpp
- *
- *  Created on: Feb 26, 2012
- *      Author: mwelch
- */
+/*******************************************************************************
+ * FILENAME:	NonTerminal.cpp
+ * DESCRIPTION:	NonTerminal Class method definitions
+ * AUTHOR:		James Matthew Welch [JMW]
+ * SCHOOL:		Arizona State University
+ * CLASS:		CSE340: Principles of Programming Languages
+ * INSTRUCTOR:	Dr. Toni Farley
+ * SECTION:		27199
+ * TERM:		Spring 2012
+ ******************************************************************************/
 
 #include "NonTerminal.hpp"
 
@@ -23,8 +27,8 @@ NonTerminal::NonTerminal(vector<string> tokenList, int ruleNum){
 	_ruleNum = ruleNum;
 	_complete = false;
 	_ruleTokens = tokenList;
-	// add _ruleTokens to _ruleList
-	_ruleList.push_back(_ruleTokens);
+	// add _ruleTokens to _ruleSet
+	_ruleSet.push_back(_ruleTokens);
 	ParseTokenList(tokenList);
 }
 
@@ -199,8 +203,16 @@ int NonTerminal::GetRuleNum(){
 	return _ruleNum;
 }
 
+vector< vector <string> > NonTerminal::GetRuleSet(){
+	return _ruleSet;
+}
+
 vector<string> NonTerminal::GetFirstNTs(){
 	return _nonTermTokens;
+}
+
+vector<string> NonTerminal::GetRule(){
+	return _ruleTokens;
 }
 void NonTerminal::SetComplete(bool complete){
 	_complete = complete;

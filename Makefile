@@ -11,7 +11,7 @@ clean:
 	rm -f parser *.o core core.*
 
 tidy: clean
-	rm -f *.*~ *~
+	rm -f *.*~ *~ 
 
 DEBUG_FLAGS = -g3 -ggdb -O0 -Wall -pedantic -DDEBUG
 CONFIG		= -Wall -pedantic
@@ -26,9 +26,9 @@ debugger: parser
 test: debug
 	./parser grammar.txt
 
-#.PHONY: submit
-#submit: tidy 
-# 	cd /..
-#	cp -r p2 James_Welch_Proj2
-#	zip -r James_Welch_Proj2 James_Welch_Proj2
-
+.PHONY: submit
+submit: tidy James_Welch_Proj2.zip NonTerminal.cpp NonTerminal.hpp parser.cpp Makefile
+	
+James_Welch_Proj2.zip:
+	cp NonTerminal.cpp NonTerminal.hpp parser.cpp  Makefile ./James_Welch_Proj2
+	zip -r James_Welch_Proj2.zip ./James_Welch_Proj2

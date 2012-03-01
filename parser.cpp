@@ -22,7 +22,7 @@ void 			PrintError(int errCode);
 #define MAX_TOKEN_LENGTH 100
 char token[MAX_TOKEN_LENGTH]; /* token string*/
 int tokenLength;
-map <string, NonTerminal> g_ruleMap;
+
 
 // beginning of recursive Descent Parser driver
 int main ( int argc, char *argv[] )
@@ -42,10 +42,11 @@ int main ( int argc, char *argv[] )
 		exit(1);
 	}
 
-	cout << endl << ":::Grammar First & Follow Sets:::" << endl;
+	cout << endl << ":::Grammar First & Follow Sets (from \"" << argv[1] << "\"):::" << endl;
 
 	// create local variables
 	// queue to hold nonterminals as they're built
+	map<string, NonTerminal> ruleNameMap;
 	map<int, NonTerminal> ruleNumberMap;
 	string strRule;
 	string name;
@@ -73,9 +74,9 @@ int main ( int argc, char *argv[] )
 				PrintError(0);
 			}
 			// assume first token is a valid NT - it will exit if not
-			map<string, NonTerminal>::iterator it = g_ruleMap.find(tokenVector[0]);
+			map<string, NonTerminal>::iterator it = ruleNameMap.find(tokenVector[0]);
 
-			if(it == g_ruleMap.end()){// if no rule exists yet, make one
+			if(it == ruleNameMap.end()){// if no rule exists yet, make one
 				nextNT = new NonTerminal(tokenVector,numRules);
 			}else{// grab the existing rule from the map
 				nextNT = &it->second;
@@ -85,11 +86,11 @@ int main ( int argc, char *argv[] )
 			if(numRules == 0){ nextNT->SetStartSymbol(); }
 
 			string ruleName = nextNT->GetName();
-			g_ruleMap[ruleName] = *nextNT;
+			ruleNameMap[ruleName] = *nextNT;
 			ruleNumberMap[currentRuleNum] = *nextNT;
 
 #ifdef DEBUG
-			cout << "stack contains " << ruleNumberMap.size() << " items." << endl << endl;
+			cout << "ruleMap contains " << ruleNumberMap.size() << " items." << endl << endl;
 #endif
 			++numRules;
 			currentRuleNum = numRules;
@@ -124,8 +125,8 @@ int main ( int argc, char *argv[] )
 					it != nonTermsInFirst.end();
 					++it){
 				// *it is a string token from the list of NonTerminals in the FIRST()
-				map <string, NonTerminal>::iterator it_nt= g_ruleMap.find(*it);
-				if(it_nt == g_ruleMap.end()){
+				map <string, NonTerminal>::iterator it_nt= ruleNameMap.find(*it);
+				if(it_nt == ruleNameMap.end()){
 					// the nonTerminal in question was unfound==>error1
 					PrintError(1);
 				}else{
@@ -134,52 +135,91 @@ int main ( int argc, char *argv[] )
 				}
 			}
 			if(modCount > 0){
-				g_ruleMap[thisNT->second.GetName()] = thisNT->second;
+				ruleNameMap[thisNT->second.GetName()] = thisNT->second;
 				ruleNumberMap[thisNT->second.GetRuleNum()] = thisNT->second;
 			}
 		}
 	}while(modCount > 0);
 
 	// parse for follow sets
-#if 0	/*===============================================*/
-	int modCount = 0;
+/*===============================================*/
+	modCount = 0;
+	string token;
+//	int lastSymbol = 0; // 0=GS, 1=TS, 2=NT
 	do{
 		modCount = 0;
 		for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
 				thisNT != ruleNumberMap.end();
 				++thisNT)
 		{
-			if(thisNT->second.IsStartSymbol()){
-				thisNT->second.AddToFollow(TS_EOF);
+			NonTerminal tempNT = thisNT->second;
+
+			if(tempNT.IsStartSymbol()){
+				tempNT.AddToFollow(TS_EOF);
 			}
 
-#ifdef DEBUG
-			cout << "Proccessing FOLLOW(" << thisNT->second.GetName() << "): mod:" << modCount << endl;
-#endif
+			vector<string> rule = tempNT.GetRule();
 
-			// look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
-			for(vector<string>::iterator it = nonTermsInFirst.begin();
-					it != nonTermsInFirst.end();
+			for(vector<string>::reverse_iterator it = rule.rbegin();
+					it != rule.rend();
 					++it){
-				// *it is a string token from the list of NonTerminals in the FIRST()
-				map <string, NonTerminal>::iterator it_nt= g_ruleMap.find(*it);
-				if(it_nt == g_ruleMap.end()){
-					// the nonTerminal in question was unfound==>error1
-					PrintError(1);
-				}else{
-					// found a matching rule, add its FIRST() to this NT's FIRST()
-					modCount += thisNT->second.UnionFirstSets(it_nt->second);
+				string token = *it;
+				map<string, NonTerminal>::iterator NTptr = ruleNameMap.find(token);
+
+				if(NTptr != ruleNameMap.end()){
+					//the token in question is a nonterm in the map
+					if( it == rule.rbegin()+1 ){
+						// the token in question is also the last one in the
+					}
+					//the last
 				}
 			}
-			if(modCount > 0){
-				g_ruleMap[thisNT->second.GetName()] = thisNT->second;
-				ruleNumberMap[thisNT->second.GetRuleNum()] = thisNT->second;
-			}
 
+
+#ifdef DEBUG
+			cout << "Processing FOLLOW(" << thisNT->second.GetName() << "): mod:" << modCount << endl;
+#endif
+
+			// for each token in this NT's rule
+			//		if(ruleNameMap.find == ruleMap.end()
+			//		if eachNT is followed by another NT, eachNT.AddToFollow(anotherNT.First)
+			//		else if eachNT is followed by a term, eachNT.addToFollow(a term)
+			//
+/*			vector< vector <string> > *ruleSet = thisNT->second.GetRuleSet;
+			for(vector< vector<string> >::iterator it_outer = ruleSet.begin();
+					it_outer != ruleSet.end();
+					++it_outer){
+				for(vector<string>::iterator it_inner = it_outer->begin()+2; // start 2 past to skip {NT,-}
+						it_inner != it_outer->end();
+						++it_inner){
+					token = *it_inner;
+
+					// put the "getnexttoken() code into GetxtToken()
+					GramSymbolType gramSym = thisNT->second.FindGrammarType(token);
+					TermSymbolType termSym = thisNT->second.FindTermType(token);
+					map<string, NonTerminal>::iterator it_NT = ruleNameMap.find(token);
+					/////
+
+					if(FindGrammarType(token) != GS_NONE){
+						// grammar symbol fn, skip it
+						lastSymbol = gramSym;
+					}
+					else if(thisNT->second.FindTermType(token) > 0){
+						// a valid terminal has been found
+					}
+
+					if( it_NT != ruleNameMap.end()){
+						// the token is a
+					}
+				}
+			}*/
 		}
+#ifdef DEBUG
+		modCount = 0;
+#endif
 	}while(modCount > 0);
 	/*===============================================*/
-#endif
+
 	// print FIRST sets
 	for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
 					thisNT != ruleNumberMap.end();

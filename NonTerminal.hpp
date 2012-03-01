@@ -1,9 +1,13 @@
-/*
- * NonTerminal.hpp
- *
- *  Created on: Feb 26, 2012
- *      Author: mwelch
- */
+/*******************************************************************************
+ * FILENAME:	NonTeminal.hpp
+ * DESCRIPTION:	Header file for NonTerminal Class
+ * AUTHOR:		James Matthew Welch [JMW]
+ * SCHOOL:		Arizona State University
+ * CLASS:		CSE340: Principles of Programming Languages
+ * INSTRUCTOR:	Dr. Toni Farley
+ * SECTION:		27199
+ * TERM:		Spring 2012
+ ******************************************************************************/
 
 #ifndef __NONTERMINAL_HPP__
 #define __NONTERMINAL_HPP__
@@ -88,19 +92,20 @@ public:
 	void ParseNewRule(vector<string> tokens);
 	string GetName();
 	vector<string> GetFirstNTs();
+	vector<string> GetRule();
 	void PrintError(int errCode);
+	vector< vector <string> > GetRuleSet();
 	bool UnionFirstSets(NonTerminal other);
 	void 			ParseTokenList(vector<string> tokenList);
-
-private:
 	GramSymbolType 	FindGrammarType(string token);
 	TermSymbolType 	FindTermType(string token);
 	bool 			isValidNonTerm(string token);
 
+private:
 	string 					_name;
 	int						_ruleNum;
 	vector<string> 			_ruleTokens;
-	vector< vector<string> > _ruleList;
+	vector< vector<string> > _ruleSet;
 	vector<string>			_nonTermTokens;
 	vector<string>			_termTokens;
 	vector<TermSymbolType> 	_firstSet;
