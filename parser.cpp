@@ -17,9 +17,6 @@
 vector<string> 	tokenize(const string & str, const string & delim);
 void 			PrintError(int errCode);
 
-#ifndef DEBUG
-#define DEBUG
-#endif
 
 /*----------------------------------------------------------*/
 /* Global Variables associated with the next input token*/
@@ -81,7 +78,7 @@ int main ( int argc, char *argv[] )
 			map<string, NonTerminal>::iterator it = ruleNameMap.find(tokenVector[0]);
 
 			if(it == ruleNameMap.end()){// if no rule exists yet, make one
-				nextNT = new NonTerminal(tokenVector,numRules);
+				nextNT = new NonTerminal(tokenVector,numRules, strRule);
 			}else{// grab the existing rule from the map
 				nextNT = &it->second;
 				currentRuleNum = nextNT->GetRuleNum();
@@ -165,7 +162,7 @@ int main ( int argc, char *argv[] )
 			const int ruleIDnum = tempNT.GetRuleNum();
 
 
-			// fill arrays wih symbol types for use in rules below
+			// fill arrays with symbol types for use in rules below
 			int numTokens = rule.size() - 2; // adjust size for {NT,-}
 			GramSymbolType 	gsTypes[numTokens];
 			TermSymbolType 	tsTypes[numTokens];
@@ -176,9 +173,7 @@ int main ( int argc, char *argv[] )
 			cout << "Processing FOLLOW(" << ruleName << ", "<< ruleIDnum <<"), numTokens("<< numTokens <<"): mod:" << modCount << endl;
 #endif
 
-
 			int i=0;
-
 			for(vector<string>::iterator it = rule.begin();
 				it != rule.end();
 				++it){
@@ -187,30 +182,49 @@ int main ( int argc, char *argv[] )
 					tokens.push_back(token);
 					gsTypes[i] = tempNT.FindGrammarType(token);
 					tsTypes[i] = tempNT.FindTermType(token);
-					isValidNT[i] = tempNT.isValidNonTerm(token);
+#ifdef DEBUG
+					cout << TermStrings[tsTypes[i]] << " ";
+#endif
+					if(gsTypes[i] == GS_NONE){
+						if( tsTypes[i] == TS_NONE){
+//							isValidNT[i] = tempNT.isValidNonTerm(token);
+							map<string,NonTerminal>::iterator it_inner = ruleNameMap.find(token);
+							if(it_inner != ruleNameMap.end()){
+								//token matches a rule in the map,
+								isValidNT[i] = true;
+							}else{
+								isValidNT[i] = true;
+							}
+						}
+					}
+					else
+						isValidNT[i] = false;
 				}
 				++i;
 			}
-
+#ifdef DEBUG
+			cout << " numTokens in vector: " << tokens.size() << endl;
+#endif
 			// begin processing ways to the follow sets
 			if(tempNT.IsStartSymbol()){
 				tempNT.AddToFollow(TS_EOF);
 				++modCount;
 			}
 
-			for(int i = 0; i<numTokens-1; ++i){ //up to numTokens-1 so at least one token following this one
-				if(isValidNT[i] ){ // this is an NT, so it has a follow set
+			for(int i = 0; i<numTokens; i++){ //up to numTokens-1 so at least one token following this one
+				string ntName = tokens[i];
 
-					string ntName = tokens[i];
-/*
-#ifdef DEBUG
-					cout << "\tCheck Token(" << ntName << ")" << endl;
-#endif
-*/
+				if(tempNT.isValidNonTerm(ntName) ){ // this is an NT, so it has a follow set
 					// get an iterator to the NonTerminal in the map, matching the ntName in question
+
+#ifdef DEBUG
+					cout << "Consider NonTerminal:::" << ntName << endl;
+
+#endif
 					map<string, NonTerminal>::iterator it = ruleNameMap.find(ntName);
 
 					if(it != ruleNameMap.end()){ // check to make sure iterator isn't null
+
 						if(i < numTokens-4){ // NT,{,term,} or NT,[,term,] or NT,[,NT,]
 							if(gsTypes[i+1] == GS_LBRACE){// followed by a repeating segment
 								if(tsTypes[i+2] > TS_NONE){ // term inside repeat
@@ -241,9 +255,17 @@ int main ( int argc, char *argv[] )
 									}
 								}
 							}
-						}else{
+						}else if (i < numTokens-1){
 							// not enough tokens left to make a x[y] or x{y} construct
 							// but at least one more, check it:
+#ifdef DEBUG
+							cout << "===> " << it->second.GetName() << endl;
+							cout << "token(" << i-1 << ")===> " << TermStrings[tsTypes[i-1]] << endl;
+							cout << "token(" << i << ")===> " << TermStrings[tsTypes[i]] << endl;
+							cout << "token(" << i+1 << ")===> " << TermStrings[tsTypes[i+1]] << endl;
+							cout << "token(" << i+2 << ")===> " << TermStrings[tsTypes[i+2]] << endl;
+							cout << "token(" << i+3 << ")===> " << TermStrings[tsTypes[i+3]] << endl;
+#endif
 							if(tsTypes[i+1] > TS_NONE){// a terminal symbol follows this NT
 								it->second.AddToFollow(tsTypes[i+1]);
 								++modCount;
@@ -275,7 +297,9 @@ int main ( int argc, char *argv[] )
 				map <string, NonTerminal>::iterator it_nt= ruleNameMap.find(*it);
 				if(it_nt == ruleNameMap.end()){
 					// the nonTerminal in question was unfound==>error1
+#ifdef DEBUG
 					cout << "Bad TOKEN::: (" << *it << ")" << endl;
+#endif
 					PrintError(1);
 				}else{
 					// found a matching rule, add its FIRST() to this NT's FIRST()
@@ -285,19 +309,18 @@ int main ( int argc, char *argv[] )
 
 
 /*===========================================================================*/
-			tempNT.PrintFollowSet();
+
 			if(modCount > 0){
 				ruleNameMap[ruleName] = tempNT;
 				ruleNumberMap[ruleIDnum] = tempNT;
 			}
 		}
-#ifdef DEBUG
 		modCount = 0;
+#ifdef DEBUG
+		cout << ":::FIRST & FOLLOW:::" << endl;
 #endif
 	}while(modCount > 0);//modCount > 0
 
-
-	cout << ":::FIRST & FOLLOW:::" << endl;
 	// print FIRST sets
 	for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
 					thisNT != ruleNumberMap.end();

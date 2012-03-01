@@ -23,10 +23,11 @@ NonTerminal::NonTerminal(string name){
 
 }
 
-NonTerminal::NonTerminal(vector<string> tokenList, int ruleNum){
+NonTerminal::NonTerminal(vector<string> tokenList, int ruleNum, string ruleString){
 	_ruleNum = ruleNum;
 	_complete = false;
 	_ruleTokens = tokenList;
+	_ruleString = ruleString;
 	// add _ruleTokens to _ruleSet
 	_ruleSet.push_back(_ruleTokens);
 	ParseTokenList(tokenList);
@@ -169,6 +170,7 @@ bool NonTerminal::UnionFollowSets( NonTerminal  other){
 		++it){
 		this->AddToFollow(*it);
 	}
+	PrintFollowSet();
 	return _modified;
 }
 
@@ -194,7 +196,9 @@ void NonTerminal::AddToFollow(TermSymbolType newFollow){
 		// add to first set if not present
 		_modified = true;
 		_followSet.push_back(newFollow);
-		PrintFollowSet();
+#ifdef DEBUG
+		cout<< "Symbol added to FOLLOW: " << newFollow << endl;
+#endif
 }
 
 void NonTerminal::AddNTtoFollow(string newFollowNT){
@@ -203,7 +207,9 @@ void NonTerminal::AddNTtoFollow(string newFollowNT){
 			++it){
 		if(this->FindGrammarType(newFollowNT) != GS_NONE){
 			// stop here, there' something wrong
+#ifdef DEBUG
 			cout << "THIS IS NOT A GRAMMAR SYMBOL(" << newFollowNT <<")"<<endl;
+#endif
 			exit(1);
 		}
 		if(newFollowNT.compare(*it) == 0) return;
@@ -303,6 +309,9 @@ bool NonTerminal::isValidNonTerm(string token){
 	int numChar = 0;
 	int tokenLength = token.length();
 
+	if(FindGrammarType(token) > 0 || FindTermType(token) > 0)
+		return false;
+
 	// check to see if valid NonTerm
 	if(isdigit(c)){
 		return false;
@@ -320,6 +329,10 @@ bool NonTerminal::isValidNonTerm(string token){
 		return true;
 	else
 		return false;
+}
+
+void NonTerminal::PrintRule(){
+	cout << _ruleString.c_str() << endl;
 }
 
 void NonTerminal::PrintError(int errCode){

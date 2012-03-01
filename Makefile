@@ -23,8 +23,8 @@ debugger: CONFIG=$(DEBUG_FLAGS)
 debugger: parser
 	gdb ./parser
 
-test: debug grammar2.txt
-	./parser grammar2.txt
+test: debug grammar.txt
+	./parser grammar.txt
 
 .PHONY: submit
 submit: tidy James_Welch_Proj2.zip NonTerminal.cpp NonTerminal.hpp parser.cpp Makefile

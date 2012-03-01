@@ -77,7 +77,7 @@ class NonTerminal {
 public:
 	NonTerminal();
 	NonTerminal(string name);
-	NonTerminal(vector<string> tokenList, int ruleNum);
+	NonTerminal(vector<string> tokenList, int ruleNum, string ruleString);
 	virtual ~NonTerminal();
 	void SetRuleNum(int num);
 	int  GetRuleNum();
@@ -88,6 +88,7 @@ public:
 	void AddFirstToFollow(NonTerminal other);
 	void AddToFollow(TermSymbolType newFollow);
 	void AddNTtoFollow(string token);
+	void PrintRule();
 	void PrintFirstSet();
 	void PrintFirstNTs();
 	void PrintFollowNTs();
@@ -116,6 +117,7 @@ private:
 	string 					_name;
 	int						_ruleNum;
 	// contents of the rule productions
+	string					_ruleString;
 	vector<string> 			_ruleTokens;
 	vector< vector<string> > _ruleSet;
 	vector<string>			_termTokens;
