@@ -1,0 +1,3 @@
+definition - [type] list EQUAL value SEMICOLON
+type - INT | REAL
+value - NUM | REALNUM | STRING

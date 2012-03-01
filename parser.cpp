@@ -135,38 +135,65 @@ int main ( int argc, char *argv[] )
 			}
 			if(modCount > 0){
 				g_ruleMap[thisNT->second.GetName()] = thisNT->second;
+				ruleNumberMap[thisNT->second.GetRuleNum()] = thisNT->second;
 			}
 		}
 	}while(modCount > 0);
 
-	queue<NonTerminal> followsDone;
 	// parse for follow sets
-	for(map<int, NonTerminal>::iterator thisNT = ruleNumberMap.begin();
-			thisNT != ruleNumberMap.end();
+#if 0	/*===============================================*/
+	int modCount = 0;
+	do{
+		modCount = 0;
+		for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
+				thisNT != ruleNumberMap.end();
+				++thisNT)
+		{
+			if(thisNT->second.IsStartSymbol()){
+				thisNT->second.AddToFollow(TS_EOF);
+			}
+
+#ifdef DEBUG
+			cout << "Proccessing FOLLOW(" << thisNT->second.GetName() << "): mod:" << modCount << endl;
+#endif
+
+			// look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
+			for(vector<string>::iterator it = nonTermsInFirst.begin();
+					it != nonTermsInFirst.end();
+					++it){
+				// *it is a string token from the list of NonTerminals in the FIRST()
+				map <string, NonTerminal>::iterator it_nt= g_ruleMap.find(*it);
+				if(it_nt == g_ruleMap.end()){
+					// the nonTerminal in question was unfound==>error1
+					PrintError(1);
+				}else{
+					// found a matching rule, add its FIRST() to this NT's FIRST()
+					modCount += thisNT->second.UnionFirstSets(it_nt->second);
+				}
+			}
+			if(modCount > 0){
+				g_ruleMap[thisNT->second.GetName()] = thisNT->second;
+				ruleNumberMap[thisNT->second.GetRuleNum()] = thisNT->second;
+			}
+
+		}
+	}while(modCount > 0);
+	/*===============================================*/
+#endif
+	// print FIRST sets
+	for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
+					thisNT != ruleNumberMap.end();
 					++thisNT)
 	{
-		thisNT->second.GetFirstNTs();
-
-		if(thisNT->second.IsStartSymbol()){
-			thisNT->second.AddToFollow(TS_EOF);
-		}
-		followsDone.push(thisNT->second);
-	}
-
-	// print FIRST sets
-	queue<NonTerminal> firstsPrinted;
-	while(!followsDone.empty()){
-		NonTerminal tempNT = followsDone.front();
-		followsDone.pop();
-		tempNT.PrintFirstSet();
-		firstsPrinted.push(tempNT);
+		thisNT->second.PrintFirstSet();
 	}
 
 	// print FOLLOW sets
-	while(!firstsPrinted.empty()){
-		NonTerminal tempNT = firstsPrinted.front();
-		firstsPrinted.pop();
-		tempNT.PrintFollowSet();
+	for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
+			thisNT != ruleNumberMap.end();
+			++thisNT)
+	{
+		thisNT->second.PrintFollowSet();
 	}
 
 	// DONE!

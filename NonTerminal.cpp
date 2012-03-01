@@ -178,6 +178,7 @@ void NonTerminal::AddToFollow(TermSymbolType newFollow){
 			if(*it == newFollow) return;
 		}
 		// add to first set if not present
+		_modified = true;
 		_followSet.push_back(newFollow);
 }
 
