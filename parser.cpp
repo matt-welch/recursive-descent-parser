@@ -17,6 +17,10 @@
 vector<string> 	tokenize(const string & str, const string & delim);
 void 			PrintError(int errCode);
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+
 /*----------------------------------------------------------*/
 /* Global Variables associated with the next input token*/
 #define MAX_TOKEN_LENGTH 100
@@ -121,7 +125,7 @@ int main ( int argc, char *argv[] )
 
 			vector<string> nonTermsInFirst = thisNT->second.GetFirstNTs();
 
-			// look at the nonTerminals listed in this NonTerminal's _nonTermTokens set
+			// look at the nonTerminals listed in this NonTerminal's _firstNonTerms set
 			for(vector<string>::iterator it = nonTermsInFirst.begin();
 					it != nonTermsInFirst.end();
 					++it){
@@ -160,71 +164,95 @@ int main ( int argc, char *argv[] )
 			const string ruleName = tempNT.GetName();
 			const int ruleIDnum = tempNT.GetRuleNum();
 
-#ifdef DEBUG
-			cout << "Processing FOLLOW(" << ruleName << "): mod:" << modCount << endl;
-#endif
 
 			// fill arrays wih symbol types for use in rules below
 			int numTokens = rule.size() - 2; // adjust size for {NT,-}
-			GramSymbolType gsTypes[numTokens];
-			TermSymbolType tsTypes[numTokens];
-			bool isValidNT[numTokens];
-//			map<string, NonTerminal>::iterator ntMapPtrs[numTokens];
-			int i=-2;
+			GramSymbolType 	gsTypes[numTokens];
+			TermSymbolType 	tsTypes[numTokens];
+			bool 			isValidNT[numTokens];
+
+
+#ifdef DEBUG
+			cout << "Processing FOLLOW(" << ruleName << ", "<< ruleIDnum <<"), numTokens("<< numTokens <<"): mod:" << modCount << endl;
+#endif
+
+
+			int i=0;
+
 			for(vector<string>::iterator it = rule.begin();
 				it != rule.end();
 				++it){
-				if(i>=0){
-				string token = *it;
-				tokens.push_back(token);
-				gsTypes[i] = tempNT.FindGrammarType(token);
-				tsTypes[i] = tempNT.FindTermType(token);
-				isValidNT[i] = (gsTypes[i]==GS_NONE) && (tsTypes[i] == TS_NONE);
+				if(i>=2){ // start looking at 3rd token (i=2)
+					string token = *it;
+					tokens.push_back(token);
+					gsTypes[i] = tempNT.FindGrammarType(token);
+					tsTypes[i] = tempNT.FindTermType(token);
+					isValidNT[i] = tempNT.isValidNonTerm(token);
 				}
 				++i;
 			}
-
 
 			// begin processing ways to the follow sets
 			if(tempNT.IsStartSymbol()){
 				tempNT.AddToFollow(TS_EOF);
 				++modCount;
 			}
-			if(isValidNT[numTokens-1]){// an NT @ end means
-				// union yours to mine and vice versa
-				tempNT.AddNTtoFollow(rule[numTokens-1]);
-				++modCount;
-			}
-			if(gsTypes[numTokens-1]==GS_RBRACKET){
-				if(isValidNT[numTokens-2]){
-					tempNT.AddNTtoFollow(rule[numTokens-2]);
-					++modCount;
-				}else if(isValidNT[numTokens-4]){
-					tempNT.AddNTtoFollow(rule[numTokens-4]);
-					++modCount;
-				}
-			}
 
-			for(int i = 0; i<numTokens; ++i){
+			for(int i = 0; i<numTokens-1; ++i){ //up to numTokens-1 so at least one token following this one
 				if(isValidNT[i] ){ // this is an NT, so it has a follow set
-					map<string, NonTerminal>::iterator it = ruleNameMap.find(tokens[i]);
-					if(it != ruleNameMap.end()){ // check to make sure iterator isn't null
-						if(i<numTokens-1 ){ //at least one token following this one
 
-							if(isValidNT[i+1]){
-								it->second.AddNTtoFollow(tokens[i+1]);
-								++modCount;
-							}else if(tsTypes[i+1]>TS_NONE){// a terminal symbol follows this NT
-								it->second.AddToFollow(tsTypes[i+1]);
-								++modCount;
-							}else if (i < numTokens-3){ // NT,{,term,} or NT,[,term,]
-								if(gsTypes[i+1] == GS_LBRACE || gsTypes[i+1] = GS_LBRACKET){
+					string ntName = tokens[i];
+/*
+#ifdef DEBUG
+					cout << "\tCheck Token(" << ntName << ")" << endl;
+#endif
+*/
+					// get an iterator to the NonTerminal in the map, matching the ntName in question
+					map<string, NonTerminal>::iterator it = ruleNameMap.find(ntName);
+
+					if(it != ruleNameMap.end()){ // check to make sure iterator isn't null
+						if(i < numTokens-4){ // NT,{,term,} or NT,[,term,] or NT,[,NT,]
+							if(gsTypes[i+1] == GS_LBRACE){// followed by a repeating segment
+								if(tsTypes[i+2] > TS_NONE){ // term inside repeat
 									it->second.AddToFollow(tsTypes[i+2]);
 									++modCount;
+								}else if(isValidNT[i+2]){// NT inside repeat
+									it->second.AddFirstToFollow(tokens[i+2]);
+									++modCount;
+								}
+							}else if(gsTypes[i+1] == GS_LBRACKET){// followed by an optional segment
+								// check inside the optional segment
+								if(tsTypes[i+2] > TS_NONE){// terminal inside brackets
+									it->second.AddToFollow(tsTypes[i+2]);
+									++modCount;
+								}else if(isValidNT[i+2]){//
+									it->second.AddFirstToFollow(tokens[i+2]);
+									++modCount;
+								}
+								for(int jj = i+3; jj<numTokens-1; ++jj){
+									if(gsTypes[jj] == GS_RBRACKET){// found the closing bracket
+										if(tsTypes[jj+1] > TS_NONE){// a terminal symbol follows the ]
+											it->second.AddToFollow(tsTypes[jj+1]);
+											++modCount;
+										}else if(isValidNT[jj+1]){// a NT follows the ]
+											it->second.AddFirstToFollow(tokens[jj+1]);
+											++modCount;
+										}
+									}
 								}
 							}
-
+						}else{
+							// not enough tokens left to make a x[y] or x{y} construct
+							// but at least one more, check it:
+							if(tsTypes[i+1] > TS_NONE){// a terminal symbol follows this NT
+								it->second.AddToFollow(tsTypes[i+1]);
+								++modCount;
+							}else if(isValidNT[i+1]){
+								it->second.AddFirstToFollow(tokens[i+1]);
+								++modCount;
+							}
 						}
+
 						int otherRuleNum = it->second.GetRuleNum();
 						ruleNumberMap[otherRuleNum] = it->second;
 					}
@@ -232,22 +260,44 @@ int main ( int argc, char *argv[] )
 				}
 			}
 
+/*===========================================================================*/
+			// TODO START HERE  cycle through NTfollowers, pulling in follow sets
+			vector<string> nonTermsInFollow = tempNT.GetFollowNTs();
 
-			// TODO START HERE MASSAGE! cycle through NTfollowers, pulling in follow sets
-			// this can be very similar to the Firss section that does the same thing
+#ifdef DEBUG
+			tempNT.PrintFollowNTs();
+#endif
+			// look at the nonTerminals listed in this NonTerminal's _followNonTerms set
+			for(vector<string>::iterator it = nonTermsInFollow.begin();
+					it != nonTermsInFollow.end();
+					++it){
+				// *it is a string ntName from the list of NonTerminals in the FIRST()
+				map <string, NonTerminal>::iterator it_nt= ruleNameMap.find(*it);
+				if(it_nt == ruleNameMap.end()){
+					// the nonTerminal in question was unfound==>error1
+					cout << "Bad TOKEN::: (" << *it << ")" << endl;
+					PrintError(1);
+				}else{
+					// found a matching rule, add its FIRST() to this NT's FIRST()
+					modCount += tempNT.UnionFollowSets(it_nt->second);
+				}
+			}
 
 
-
+/*===========================================================================*/
 			tempNT.PrintFollowSet();
-			ruleNumberMap[ruleIDnum] = tempNT;
-			ruleNameMap[ruleName] = tempNT;
+			if(modCount > 0){
+				ruleNameMap[ruleName] = tempNT;
+				ruleNumberMap[ruleIDnum] = tempNT;
+			}
 		}
 #ifdef DEBUG
 		modCount = 0;
 #endif
-	}while(0);//modCount > 0
-	/*===============================================*/
+	}while(modCount > 0);//modCount > 0
 
+
+	cout << ":::FIRST & FOLLOW:::" << endl;
 	// print FIRST sets
 	for(map<int,NonTerminal>::iterator thisNT = ruleNumberMap.begin();
 					thisNT != ruleNumberMap.end();
@@ -312,6 +362,9 @@ vector<string> tokenize(const string & str, const string & delim) {
 			}while(isalnum(c));
 			tokens.push_back(string(token));
 		}
+#ifdef DEBUGISNOTENOUGH
+			cout << "tokenizer()::" << token << endl;
+#endif
 	}
 	return tokens;
 }
@@ -332,6 +385,6 @@ void PrintError(int errCode){
 		message = "unknown error, kinda like a BSOD";
 		break;
 	}
-	cout << endl << endl << "ERROR CODE " << errCode << " :: " << message << endl << endl;
+	cout << endl << endl << "Main() ERROR CODE " << errCode << " :: " << message << endl << endl;
 	exit(1);
 }

@@ -201,12 +201,25 @@ void NonTerminal::AddNTtoFollow(string newFollowNT){
 	for(vector<string>::iterator it = _followNonTerms.begin();
 			it != _followNonTerms.end();
 			++it){
+		if(this->FindGrammarType(newFollowNT) != GS_NONE){
+			// stop here, there' something wrong
+			cout << "THIS IS NOT A GRAMMAR SYMBOL(" << newFollowNT <<")"<<endl;
+			exit(1);
+		}
 		if(newFollowNT.compare(*it) == 0) return;
 	}
 	_modified = true;
 	_followNonTerms.push_back(newFollowNT);
 }
 
+void NonTerminal::AddFirstToFollow(NonTerminal other){
+	_modified = false;
+	for(vector<TermSymbolType>::iterator it = other._firstSet.begin();
+		it != 	other._firstSet.end();
+		++it){
+		this->AddToFollow(*it);
+	}
+}
 void NonTerminal::SetStartSymbol(){
 	// no start symbol has been set yet, set it to 1
 	_startSym = true;
@@ -230,6 +243,10 @@ vector< vector <string> > NonTerminal::GetRuleSet(){
 
 vector<string> NonTerminal::GetFirstNTs(){
 	return _firstNonTerms;
+}
+
+vector<string> NonTerminal::GetFollowNTs(){
+	return _followNonTerms;
 }
 
 vector<string> NonTerminal::GetRule(){
@@ -272,7 +289,7 @@ GramSymbolType NonTerminal::FindGrammarType(string token)
 }
 
 TermSymbolType NonTerminal::FindTermType(string token){
-	for(int i = 0; i < 35; i++){
+	for(int i = 0; i < g_NUM_TERMINALS; i++){
 		if(token.compare(TermStrings[i]) == 0){
 			return TermSymbols[i];
 		}

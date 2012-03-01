@@ -55,6 +55,8 @@ typedef enum e_GrammarSymbols {
 	GS_NONE, GS_LBRACKET, GS_RBRACKET, GS_LBRACE, GS_RBRACE, GS_DASH, GS_OR, GS_EOF
 }GramSymbolType;
 
+const int g_NUM_TERMINALS = 36;
+
 const string TermStrings[36] = {
 		"NONE", "VAR", "BEGIN", "END", "ASSIGN", "IF", "WHILE", "DO", "THEN", "PRINT",
 		"INT",  "REAL", "STRING", "PLUS", "MINUS", "UNDERSCORE", "DIV", "MULT", "EQUAL", "COLON",
@@ -83,6 +85,7 @@ public:
 	bool GetComplete();
 	void AddToFirst(TermSymbolType newFirst);
 	void AddNTtoFirst(string token);
+	void AddFirstToFollow(NonTerminal other);
 	void AddToFollow(TermSymbolType newFollow);
 	void AddNTtoFollow(string token);
 	void PrintFirstSet();
@@ -94,6 +97,7 @@ public:
 	void ParseNewRule(vector<string> tokens);
 	string GetName();
 	vector<string> GetFirstNTs();
+	vector<string> GetFollowNTs();
 	vector<string> GetRule();
 	void PrintError(int errCode);
 	vector< vector <string> > GetRuleSet();
